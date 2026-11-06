@@ -270,18 +270,39 @@ ${footer()}
   return page({ title: 'Enlace no disponible · MantenGO', desc: 'Este enlace no está disponible.', image: '', body });
 }
 
+// ---------- ruta ----------
+// Lee el token directo de la dirección original (/s/<token> o /i/<token>/<n>).
+// Si no se puede, cae a los parámetros ?token= y ?img= por compatibilidad.
+function route(event) {
+  const sources = [event.rawUrl, event.path].filter(Boolean).map(String);
+  for (const s of sources) {
+    const m = s.match(/\/(s|i)\/([^/?#]+)(?:\/(\d+))?/);
+    if (m) {
+      let tok = m[2];
+      try {
+        tok = decodeURIComponent(tok);
+      } catch (e) {
+        /* se queda como viene y no pasará la validación */
+      }
+      return { kind: m[1], token: tok, n: m[3] };
+    }
+  }
+  const q = event.queryStringParameters || {};
+  return { kind: q.img !== undefined ? 'i' : 's', token: String(q.token || ''), n: q.img };
+}
+
 // ---------- handler ----------
 exports.handler = async (event) => {
-  const q = event.queryStringParameters || {};
-  const token = String(q.token || '').trim();
+  const r = route(event);
+  const token = r.token.trim();
   const base = baseUrl(event);
   const demoOn = process.env.ALLOW_DEMO !== 'false';
 
   const unavailable = () => ({ statusCode: 404, headers: BASE_HEADERS, body: renderUnavailable() });
 
   // Redirección a la foto n con URL fresca (vista previa de WhatsApp)
-  if (q.img !== undefined) {
-    const n = parseInt(q.img, 10);
+  if (r.kind === 'i') {
+    const n = parseInt(r.n, 10);
     if (!TOKEN_RE.test(token) || !(n >= 1 && n <= 50)) return { statusCode: 404, body: '' };
     try {
       const s = await fetchService(token);
