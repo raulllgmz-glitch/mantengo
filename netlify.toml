@@ -1,0 +1,26 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Página del servicio: /s/<token>
+[[redirects]]
+  from = "/s/:token"
+  to = "/.netlify/functions/servicio?token=:token"
+  status = 200
+  force = true
+
+# Foto para la vista previa de WhatsApp: /i/<token>/<n>
+[[redirects]]
+  from = "/i/:token/:n"
+  to = "/.netlify/functions/servicio?token=:token&img=:n"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"

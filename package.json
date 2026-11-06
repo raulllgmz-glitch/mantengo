@@ -1,0 +1,7 @@
+{
+  "name": "mantengo-links",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Links únicos de servicio de MantenGO (Netlify + Airtable)",
+  "engines": { "node": ">=18" }
+}
