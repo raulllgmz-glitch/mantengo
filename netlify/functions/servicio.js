@@ -499,7 +499,7 @@ ${footer()}
 ${isDemo ? '<div class="foot">Vista de ejemplo con datos ficticios.</div>' : ''}
 </main>`;
 
-  const ogImage = terminado && s.fotos.length && !isDemo ? `${base}/i/${token}/1` : `${base}/assets/preview-${cur}.png`;
+  const ogImage = `${base}/assets/preview-${cur}.png`;
   return page({
     title: `${s.folio} · ${LABELS[cur]}`,
     desc: [titulo, s.lugar, terminado ? fmtDate(s.cierre) : s.programada ? fmtDT(s.programada) : ''].filter(Boolean).join(' · '),
