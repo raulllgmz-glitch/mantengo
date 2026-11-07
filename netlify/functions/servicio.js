@@ -40,6 +40,7 @@ const TOKEN_RE = /^[A-Za-z0-9_-]{16,64}$/;
 
 // Etapas, en orden. El índice es la etapa actual.
 const LABELS = ['Solicitud recibida', 'Servicio programado', 'Técnico en camino', 'Servicio en proceso', 'Servicio terminado'];
+const EMOJI = ['📥', '📅', '🚚', '🔧', '✅'];
 const BADGES = ['SOLICITUD RECIBIDA', 'SERVICIO PROGRAMADO', 'TÉCNICO EN CAMINO', 'SERVICIO EN PROCESO', 'SERVICIO TERMINADO'];
 const ALIAS = {
   recibido: 0, recibida: 0, abierto: 0, abierta: 0,
@@ -117,6 +118,8 @@ function stageIndex(s) {
   if (s.cierre) return 4;
   const i = ALIAS[norm(s.etapa)];
   if (i !== undefined) return i;
+  const j = LABELS.findIndex((l) => norm(l) === norm(s.etapa));
+  if (j >= 0) return j;
   if (s.camino) return 2;
   if (s.programada) return 1;
   return 0;
@@ -496,7 +499,7 @@ ${footer()}
 ${isDemo ? '<div class="foot">Vista de ejemplo con datos ficticios.</div>' : ''}
 </main>`;
 
-  const ogImage = terminado && s.fotos.length && !isDemo ? `${base}/i/${token}/1` : `${base}/assets/yeti.png`;
+  const ogImage = terminado && s.fotos.length && !isDemo ? `${base}/i/${token}/1` : `${base}/assets/preview-${cur}.png`;
   return page({
     title: `${s.folio} · ${LABELS[cur]}`,
     desc: [titulo, s.lugar, terminado ? fmtDate(s.cierre) : s.programada ? fmtDT(s.programada) : ''].filter(Boolean).join(' · '),
