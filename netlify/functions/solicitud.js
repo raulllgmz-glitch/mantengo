@@ -31,7 +31,7 @@ const S = {
   contacto: 'Contacto',
   tel: 'Telefono',
   serie: 'Serie',
-  fecha: 'Fecha solicitada',
+  fecha: 'Fecha Solicitada',
   fotos: 'Fotos solicitud',
   evid: 'Evidencias'
 };
@@ -275,7 +275,7 @@ exports.handler = async (event) => {
       if (tel) fields[S.tel] = tel;
       if (serie) fields[S.serie] = serie;
       const f = fechaSolicitada(b.fecha);
-      if (f) fields[S.fecha] = f;
+      if (f) fields[S.fecha] = `${f}T12:00:00.000Z`; // mediodía UTC = misma fecha en México
 
       const rec = await crearRegistro(fields);
       const folio = clean((rec.fields && rec.fields[S.folio]) || '', 40);
