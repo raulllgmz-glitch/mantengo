@@ -37,6 +37,11 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
 .link{background:none;border:0;color:var(--orange);font:inherit;font-size:13.5px;text-decoration:underline;cursor:pointer;padding:6px 0}
 #pdv .row{margin-top:12px}
 #pdv img{width:100%;max-height:220px;object-fit:cover;border-radius:12px;display:block;margin-bottom:12px;background:var(--bg)}
+.avs{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+textarea{width:100%;min-height:76px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:#fff;font:inherit;font-size:16px;padding:12px 14px;resize:vertical}
+textarea:focus{outline:2px solid var(--orange);outline-offset:1px}
+.btn.done{background:var(--ok);color:#0F1B24}
+.pend{font-size:13.5px;font-weight:600;color:var(--orange);margin-top:10px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .btn.sec{min-height:48px;font-size:15px;background:transparent;color:#fff;border:1.5px solid #3A5062;text-decoration:none;text-align:center;padding:0 10px}
 .btn.pri{text-decoration:none}
@@ -93,6 +98,19 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
     <button class="btn stop" id="halt" type="button" style="margin-top:10px" hidden>Detener</button>
     <p class="hint" id="warn">Mientras vas en camino deja esta pantalla abierta y encendida. El cliente verá tu distancia hasta que llegues.</p>
   </section>
+  <section class="card" id="av" hidden>
+    <div class="k">Avance del servicio</div>
+    <div class="avs">
+      <button class="btn sec" id="b_lleg" type="button">Llegué al punto de venta</button>
+      <input id="f_foto" type="file" accept="image/*" capture="environment" multiple hidden>
+      <button class="btn sec" id="b_foto" type="button">Agregar foto de evidencia</button>
+      <div class="small" id="n_foto" hidden></div>
+      <textarea id="coment" maxlength="500" placeholder="Comentario de cierre (opcional)" aria-label="Comentario de cierre"></textarea>
+      <button class="btn" id="b_fin" type="button">Terminar servicio</button>
+    </div>
+    <div class="pend" id="pend" hidden></div>
+    <p class="hint">Funciona sin señal: lo que marques se guarda en el teléfono y se envía solo al volver la conexión.</p>
+  </section>
 </main>
 
 <script>
@@ -112,6 +130,7 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
   var watchId = null, timer = null, latest = null, lastSentAt = 0, sentCount = 0, wake = null, running = false;
 
   if (!OK) { show('bad', true); return; }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () {});
 
   function call(action, extra) {
     var body = { token: TOKEN, key: getKey(), action: action };
@@ -128,23 +147,51 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
 
   function needKey(msg) {
     stop(true);
-    show('svc', false); show('pdv', false); show('ctl', false); show('keybox', true);
+    show('svc', false); show('pdv', false); show('ctl', false); show('av', false); show('keybox', true);
     var e = $('keyerr');
     if (msg) { e.textContent = msg; e.className = 'hint err'; e.hidden = false; } else { e.hidden = true; }
     $('key').value = '';
     $('key').focus();
   }
 
+  var INFOKEY = 'mg_info_' + TOKEN;
+  function saveInfo(d) { try { var c = {}; for (var k in d) if (k !== '_status') c[k] = d[k]; localStorage.setItem(INFOKEY, JSON.stringify(c)); } catch (e) {} }
+  function savedInfo() { try { return JSON.parse(localStorage.getItem(INFOKEY) || 'null'); } catch (e) { return null; } }
+  function cacheFoto(u) {
+    if (!u || !window.caches) return;
+    caches.open('mg-img-v1').then(function (c) { return fetch(u, { mode: 'no-cors' }).then(function (r) { return c.put(u, r); }); }).catch(function () {});
+  }
+  function offlineInfo() {
+    var d = savedInfo();
+    if (!d) return false;
+    offl = true;
+    show('keybox', false); show('svc', true); show('ctl', true);
+    $('folio').textContent = d.folio || '—';
+    $('lugar').textContent = d.lugar || '';
+    renderPdv(d);
+    showAv(d);
+    $('go').disabled = false;
+    setState('Sin señal · datos guardados', 'err', 'Puedes iniciar el viaje: tu ubicación se enviará en cuanto vuelva la conexión.');
+    preLocate();
+    retry = setTimeout(loadInfo, 15000);
+    return true;
+  }
+  var retry = null, offl = false;
+
   function loadInfo() {
+    if (retry) { clearTimeout(retry); retry = null; }
+    if (running) return;
     call('info').then(function (d) {
       if (d._status === 401) { setKey(''); return needKey('La clave no es correcta.'); }
       if (d._status === 404) { show('keybox', false); show('svc', false); show('ctl', false); show('bad', true); return; }
       if (d._status === 503) { return needKey('El seguimiento aún no está configurado. Avisa a MantenGO.'); }
-      if (d._status >= 500 || !d._status) { return needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); }
+      if (d._status >= 500 || !d._status) { if (offlineInfo()) return; return needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); }
+      offl = false; saveInfo(d); if (d.pdv) cacheFoto(d.pdv.foto);
       show('keybox', false); show('svc', true); show('ctl', true);
       $('folio').textContent = d.folio || '—';
       $('lugar').textContent = d.lugar || '';
       renderPdv(d);
+      showAv(d);
       if (d.error === 'terminado') {
         setState('Servicio terminado', '', 'Ya no se comparte la ubicación.');
         $('go').disabled = true;
@@ -153,7 +200,7 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
         setState('Listo para salir', '', '');
         preLocate();
       }
-    }).catch(function () { needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); });
+    }).catch(function () { if (offlineInfo()) return; needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); });
   }
 
   var dest = null;
@@ -206,7 +253,7 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
     if (pre || running || !navigator.geolocation) return;
     pre = true;
     navigator.geolocation.getCurrentPosition(function (pos) {
-      if (running) return;
+      if (running || offl) return;
       var c = pos.coords, msg = 'Ubicación detectada · precisión ' + Math.round(c.accuracy || 0) + ' m';
       if (window.__pdv && window.__pdv.lat !== null) msg += ' · a ' + km(c.latitude, c.longitude, window.__pdv.lat, window.__pdv.lon).toFixed(1) + ' km del punto de venta';
       setState('Listo para salir', '', msg);
@@ -227,13 +274,13 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
       if (d.error === 'terminado') { stop(false); setState('Servicio terminado', '', 'Ya no se comparte la ubicación.'); return; }
       if (d.llego) { stop(false); setState('Llegaste', '', 'El servicio ya está en proceso. Se dejó de compartir tu ubicación.'); return; }
       if (d._status === 422) { setState('Faltan campos en Airtable', 'err', 'Avisa a MantenGO: faltan Lat técnico, Lon técnico o Ubicación actualizada.'); return; }
-      if (!d.ok) { setState('Sin conexión con el servidor', 'err', 'Reintentando…'); return; }
+      if (!d.ok) { setState('Sin señal · reintentando', 'err', 'Tu ubicación se envía en cuanto vuelva la conexión.'); return; }
       sentCount++; lastSentAt = Date.now();
       setState('Compartiendo tu ubicación', 'live',
         'Último envío ' + hhmmss(new Date(lastSentAt)) + ' · precisión ' + Math.round(p.acc) + ' m · envíos ' + sentCount +
         (d.sinEtapa ? ' · Avisa que falta la opción "En camino" en Etapa.' : ''));
     }).catch(function () {
-      if (running) setState('Sin internet', 'err', 'Reintentando…');
+      if (running) setState('Sin señal · reintentando', 'err', 'Sigo guardando tu posición y la envío al volver la conexión.');
     });
   }
 
@@ -278,6 +325,130 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
     if (was && !silent) { call('stop').catch(function () {}); }
   }
 
+
+  // ===== Avance del servicio (funciona sin señal: cola local) =====
+  var STKEY = 'mg_st_' + TOKEN, nFotos = 0, busy = 0, flushing = false, finTimer = null, dbp = null;
+  function stGet() { try { return localStorage.getItem(STKEY) || ''; } catch (e) { return ''; } }
+  function stSet(v) { try { localStorage.setItem(STKEY, v); } catch (e) {} }
+  function idb() {
+    if (dbp) return dbp;
+    dbp = new Promise(function (ok, no) {
+      if (!window.indexedDB) return no(new Error('sin idb'));
+      var r = indexedDB.open('mg_cola', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('q', { keyPath: 'id', autoIncrement: true }); };
+      r.onsuccess = function () { ok(r.result); };
+      r.onerror = function () { no(r.error); };
+    });
+    return dbp;
+  }
+  function tx(mode, fn) {
+    return idb().then(function (db) {
+      return new Promise(function (ok, no) {
+        var t = db.transaction('q', mode), st = t.objectStore('q'), out = fn(st);
+        t.oncomplete = function () { ok(out && out.result); };
+        t.onerror = function () { no(t.error); };
+      });
+    });
+  }
+  function qAdd(item) { item.token = TOKEN; return tx('readwrite', function (s) { return s.add(item); }); }
+  function qAll() { return tx('readonly', function (s) { return s.getAll(); }).then(function (a) { return (a || []).sort(function (x, y) { return x.id - y.id; }); }); }
+  function qDel(id) { return tx('readwrite', function (s) { return s['delete'](id); }); }
+  function showPend() {
+    qAll().then(function (a) {
+      var mine = a.filter(function (i) { return i.token === TOKEN; }), n = mine.length, p = $('pend');
+      p.hidden = !n;
+      if (n) p.textContent = 'Pendiente por enviar: ' + n + (navigator.onLine === false ? ' · sin señal' : '');
+    }).catch(function () {});
+  }
+  var flushErr = '';
+  function flush() {
+    if (flushing) return; flushing = true;
+    qAll().then(function (items) {
+      var chain = Promise.resolve(), stopAll = false;
+      items.forEach(function (it) {
+        chain = chain.then(function () {
+          if (stopAll) return;
+          var extra = it.type === 'foto' ? { data: it.data } : it.type === 'terminar' ? { comentario: it.comentario || '' } : {};
+          var body = { token: it.token, key: getKey(), action: it.type };
+          for (var k in extra) body[k] = extra[k];
+          return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); })
+            .then(function (d) {
+              if (d._status === 401) { stopAll = true; setKey(''); needKey('La clave cambió. Escríbela de nuevo.'); return; }
+              if (d._status >= 500 || !d._status) { stopAll = true; return; }
+              if (d._status === 422) flushErr = 'Avisa a MantenGO: falta el campo Evidencias o Etapa en Airtable.';
+              return qDel(it.id);
+            }).catch(function () { stopAll = true; });
+        });
+      });
+      return chain;
+    }).catch(function () {}).then(function () { flushing = false; showPend(); renderAv(); });
+  }
+  function renderAv() {
+    var s = stGet(), lleg = $('b_lleg'), fin = $('b_fin');
+    if (s === 'fin') {
+      lleg.hidden = true; $('b_foto').hidden = true; $('coment').hidden = true; fin.className = 'btn done'; fin.disabled = true; fin.textContent = 'Servicio terminado ✓';
+    } else if (s === 'llegue') {
+      lleg.className = 'btn sec done'; lleg.disabled = true; lleg.textContent = 'Llegada registrada ✓';
+    }
+    var n = $('n_foto'); n.hidden = !nFotos; if (nFotos) n.textContent = 'Fotos agregadas: ' + nFotos;
+    if (flushErr) { var e = $('pend'); e.hidden = false; e.textContent = flushErr; }
+  }
+  function showAv(d) {
+    if (d && d.error === 'terminado') { show('av', false); return; }
+    if (d && /proceso/i.test(String(d.etapa || '')) && stGet() !== 'fin') stSet('llegue');
+    show('av', true); renderAv(); showPend(); flush();
+  }
+  function shrink(file) {
+    return new Promise(function (ok, no) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var m = 1600, k = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var u = c.toDataURL('image/jpeg', 0.8); ok(u.slice(u.indexOf(',') + 1));
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); no(new Error('imagen')); };
+      im.src = url;
+    });
+  }
+  $('b_lleg').addEventListener('click', function () {
+    if (stGet()) return;
+    stop(true); stSet('llegue');
+    setState('Llegaste', '', 'Se dejó de compartir tu ubicación.');
+    qAdd({ type: 'llegue' }).then(function () { showPend(); flush(); renderAv(); });
+    renderAv();
+  });
+  $('b_foto').addEventListener('click', function () { $('f_foto').click(); });
+  $('f_foto').addEventListener('change', function () {
+    var files = Array.prototype.slice.call(this.files || []); this.value = '';
+    files.forEach(function (f) {
+      busy++;
+      shrink(f).then(function (b64) { return qAdd({ type: 'foto', data: b64 }); })
+        .then(function () { nFotos++; })
+        .catch(function () { flushErr = 'No se pudo preparar una foto. Inténtalo de nuevo.'; })
+        .then(function () { busy--; renderAv(); showPend(); flush(); });
+    });
+  });
+  $('b_fin').addEventListener('click', function () {
+    var b = this;
+    if (busy) { b.textContent = 'Espera, preparando fotos…'; return; }
+    if (!finTimer) {
+      b.textContent = 'Toca otra vez para confirmar';
+      finTimer = setTimeout(function () { finTimer = null; if (stGet() !== 'fin') b.textContent = 'Terminar servicio'; }, 5000);
+      return;
+    }
+    clearTimeout(finTimer); finTimer = null;
+    stop(true); stSet('fin');
+    setState('Servicio terminado', '', 'Ya no se comparte la ubicación.');
+    $('go').disabled = true;
+    qAdd({ type: 'terminar', comentario: $('coment').value }).then(function () { showPend(); flush(); renderAv(); });
+    renderAv();
+  });
+  window.addEventListener('online', function () { flush(); });
+  setInterval(function () { if (!$('av').hidden) flush(); }, 20000);
+
   $('go').addEventListener('click', start);
   $('halt').addEventListener('click', function () { stop(false); setState('Seguimiento detenido', '', 'El cliente ya no verá tu ubicación.'); });
   $('keyok').addEventListener('click', function () {
@@ -288,6 +459,7 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
   $('key').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('keyok').click(); });
   $('chgkey').addEventListener('click', function () { needKey(''); });
   document.addEventListener('visibilitychange', function () { if (running && document.visibilityState === 'visible') { lock(); send(); } });
+  window.addEventListener('online', function () { if (running) send(); else if (!$('svc').hidden) loadInfo(); });
   window.addEventListener('pagehide', function () { /* sin aviso: si se cierra, la posición caduca sola a los 10 min */ });
 
   if (getKey()) loadInfo(); else { show('keybox', true); }

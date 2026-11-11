@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruta del día · MantenGO</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#0F1B24">
+<meta property="og:title" content="Ruta del día · MantenGO">
+<meta property="og:description" content="Servicios programados y su avance en tiempo real.">
+<meta property="og:image" content="https://mantengo.netlify.app/assets/preview-1.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+:root{--bg:#0F1B24;--card:#16262F;--line:#2A3E4D;--orange:#F5A623;--muted:#A9B8C3;--ok:#4CD38A;--bad:#FF8A8A}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px}
+.logo{width:170px;height:auto}
+.k{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--orange)}
+h1{margin:2px 0 0;font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.sub{font-size:13.5px;color:var(--muted);margin-top:4px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{height:40px;padding:0 15px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);color:#D5DEE5;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tab[aria-pressed="true"]{background:rgba(245,166,35,.16);border-color:var(--orange);color:#fff;font-weight:700}
+input[type=date]{height:40px;border-radius:999px;border:1.5px solid var(--orange);background:var(--card);color:#fff;font:inherit;font-size:14px;padding:0 12px}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.stop{display:flex;gap:12px;text-decoration:none;color:inherit}
+.rail{display:flex;flex-direction:column;align-items:center}
+.n{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#0F1B24;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.n.fin{background:var(--ok)}
+.ln{flex:1;width:2px;background:var(--line);margin:4px 0}
+.c{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:2px}
+a.stop:hover .c{border-color:#3A5062}
+.hr{font-size:20px;font-weight:800}
+.hr.sin{font-size:15px;color:var(--muted);font-weight:600}
+.nm{font-size:15.5px;font-weight:700;margin-top:4px;overflow-wrap:anywhere}
+.ad{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.b{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:4px 10px;background:rgba(245,166,35,.16);color:var(--orange)}
+.b.g{background:rgba(76,211,138,.16);color:var(--ok)}
+.b.b{background:rgba(120,170,255,.16);color:#8fb4ff}
+.b.m{background:rgba(169,184,195,.14);color:var(--muted)}
+.v{font-size:13px;color:var(--orange);font-weight:700}
+.empty{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;color:var(--muted);text-align:center}
+.err{color:var(--bad);font-weight:600}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;border:1.5px solid #3A5062;border-radius:999px;background:transparent;color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+#map{height:210px;border-radius:16px;border:1px solid var(--line);overflow:hidden;background:#101c24}
+.leaflet-tile-pane{filter:invert(100%) hue-rotate(180deg) brightness(92%) contrast(88%) saturate(70%)}
+.mk{width:28px;height:28px;border-radius:50%;color:#0F1B24;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;border:3px solid #0F1B24;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.grp{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin:6px 0 8px}
+.grp i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.nomap{font-size:12px;color:var(--muted);margin-top:-8px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
+
+  <section class="empty" id="bad" hidden>
+    <p class="err" style="margin:0">Esta liga no es válida o ya no está activa.</p>
+    <p style="margin:8px 0 0;font-size:13px">Pídele a MantenGO tu liga de ruta.</p>
+  </section>
+  <section class="empty" id="load">Cargando…</section>
+
+  <div id="main" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div>
+      <div class="k">Ruta del día</div>
+      <h1 id="nombre">—</h1>
+      <div class="sub" id="resumen"></div>
+    </div>
+    <div class="tabs" id="tabs" role="group" aria-label="Elegir día">
+      <button class="tab" type="button" data-d="hoy" aria-pressed="false">Hoy</button>
+      <button class="tab" type="button" data-d="manana" aria-pressed="false">Mañana</button>
+      <button class="tab" type="button" data-d="otro" aria-pressed="false">Elegir día</button>
+      <input type="date" id="fecha" hidden aria-label="Elegir una fecha">
+    </div>
+    <div id="map" role="img" aria-label="Mapa con las paradas del día" hidden></div>
+    <div class="nomap" id="nomap" hidden></div>
+    <div id="lista" aria-live="polite"></div>
+    <button class="btn" id="share" type="button">Compartir esta ruta</button>
+    <div class="foot">El estatus se actualiza solo durante el día · MantenGO</div>
+  </div>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function () {
+  'use strict';
+  var CODE = (location.pathname.split('/')[2] || '').split('?')[0];
+  var API = '/api/ruta';
+  var D = new URLSearchParams(location.search).get('d') || 'hoy';
+  var timer = null;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(CODE)) { $('load').hidden = true; $('bad').hidden = false; return; }
+
+  var BADGE = { 'Terminado': 'g', 'En camino': 'b', 'En proceso': 'b', 'Programado': '', 'Recibido': 'm' };
+
+  function fechaLarga(iso) {
+    var p = iso.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12));
+    var t = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+  function load() {
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: CODE, d: D }), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); })
+      .then(function (d) {
+        $('load').hidden = true;
+        if (d._status === 404) { $('main').hidden = true; $('bad').hidden = false; return; }
+        if (!d.ok) {
+          if (!$('main').hidden) return; // se queda lo último que se vio
+          $('load').hidden = false; $('load').innerHTML = '<span class="err">No se pudo cargar. Revisa tu internet.</span>'; return;
+        }
+        render(d);
+      })
+      .catch(function () { if ($('main').hidden) { $('load').hidden = false; $('load').innerHTML = '<span class="err">No se pudo cargar. Revisa tu internet.</span>'; } });
+  }
+
+  function render(d) {
+    $('main').hidden = false;
+    $('nombre').textContent = d.nombre || 'Tu ruta';
+    var n = d.paradas.length;
+    var partes = [fechaLarga(d.dia), n + (n === 1 ? ' servicio' : ' servicios')];
+    if (d.tecnicos && d.tecnicos.length) partes.push((d.tecnicos.length > 1 ? 'Técnicos: ' : 'Técnico: ') + d.tecnicos.join(', '));
+    $('resumen').textContent = partes.join(' · ');
+    document.title = (d.nombre ? d.nombre + ' · ' : '') + 'Ruta ' + d.dia;
+
+    var sel = d.dia === d.hoy ? 'hoy' : d.dia === nextDay(d.hoy) ? 'manana' : 'otro';
+    Array.prototype.forEach.call($('tabs').querySelectorAll('.tab'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-d') === sel ? 'true' : 'false'); });
+    $('fecha').hidden = sel !== 'otro'; $('fecha').value = d.dia;
+
+    var html = '', lastG = null;
+    d.paradas.forEach(function (p, i) {
+      var sig = d.paradas[i + 1], conLinea = sig && (!d.varios || sig.tecnico === p.tecnico);
+      if (d.varios && p.tecnico !== lastG) { lastG = p.tecnico; html += '<div class="grp"><i style="background:' + color(p.g) + '"></i>' + esc(p.tecnico || 'Sin técnico asignado') + '</div>'; }
+      var fin = p.etapa === 'Terminado';
+      var cls = BADGE[p.etapa] || '';
+      var hora = p.hora ? '<div class="hr">' + esc(p.hora) + '</div>' : '<div class="hr sin">Horario por confirmar</div>';
+      var body = '<div class="rail"><div class="n' + (fin ? ' fin' : '') + '">' + (fin ? '&#10003;' : p.n) + '</div>' + (conLinea ? '<div class="ln"></div>' : '') + '</div>' +
+        '<div class="c">' + hora + '<div class="nm">' + esc(p.lugar || 'Servicio') + '</div>' + (p.dir ? '<div class="ad">' + esc(p.dir) + '</div>' : '') +
+        '<div class="row"><span class="b ' + cls + '">' + esc(p.etapa) + '</span>' + (p.token ? '<span class="v">Ver seguimiento &rsaquo;</span>' : '') + '</div></div>';
+      html += p.token ? '<a class="stop" href="/s/' + encodeURIComponent(p.token) + '">' + body + '</a>' : '<div class="stop">' + body + '</div>';
+    });
+    drawMap(d);
+    $('lista').innerHTML = html || '<div class="empty">No hay servicios programados para este día.</div>';
+  }
+
+  var PAL = ['#F5A623', '#5BC0FF', '#B58CFF', '#4CD38A', '#FF7AA2'];
+  function color(g) { return PAL[g % PAL.length]; }
+  var map = null, layer = null;
+  function drawMap(d) {
+    var con = d.paradas.filter(function (p) { return p.lat != null && p.lon != null; });
+    var sin = d.paradas.length - con.length;
+    $('map').hidden = !con.length || !window.L;
+    $('nomap').hidden = !(con.length && sin);
+    if (sin) $('nomap').textContent = sin + (sin === 1 ? ' parada no tiene' : ' paradas no tienen') + ' ubicación en el mapa.';
+    if (!con.length || !window.L) return;
+    if (!map) {
+      map = L.map('map', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      layer = L.layerGroup().addTo(map);
+    }
+    layer.clearLayers();
+    var grupos = {};
+    con.forEach(function (p) { (grupos[p.g] = grupos[p.g] || []).push(p); });
+    var pts = [];
+    Object.keys(grupos).forEach(function (g) {
+      var arr = grupos[g], c = d.varios ? color(+g) : PAL[0];
+      if (arr.length > 1) L.polyline(arr.map(function (p) { return [p.lat, p.lon]; }), { color: c, weight: 3, opacity: .7, dashArray: '6 8' }).addTo(layer);
+      arr.forEach(function (p) {
+        var fin = p.etapa === 'Terminado';
+        L.marker([p.lat, p.lon], { title: p.lugar, icon: L.divIcon({ className: '', html: '<div class="mk" style="background:' + (fin ? '#4CD38A' : c) + '">' + (fin ? '&#10003;' : p.n) + '</div>', iconSize: [28, 28], iconAnchor: [14, 14] }) }).addTo(layer);
+        pts.push([p.lat, p.lon]);
+      });
+    });
+    map.invalidateSize();
+    if (pts.length === 1) map.setView(pts[0], 15); else map.fitBounds(pts, { padding: [28, 28], maxZoom: 16 });
+  }
+
+  function nextDay(iso) { var p = iso.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12)); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); }
+
+  function go(v) {
+    D = v; load();
+    try { history.replaceState(null, '', location.pathname + (v === 'hoy' ? '' : '?d=' + encodeURIComponent(v))); } catch (e) {}
+  }
+  Array.prototype.forEach.call($('tabs').querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-d');
+      if (v === 'otro') { $('fecha').hidden = false; $('fecha').focus(); if ($('fecha').showPicker) { try { $('fecha').showPicker(); } catch (e) {} } return; }
+      go(v);
+    });
+  });
+  $('fecha').addEventListener('change', function () { if (this.value) go(this.value); });
+  $('share').addEventListener('click', function () {
+    var url = location.href, txt = ($('nombre').textContent || 'Ruta') + ' · ' + $('resumen').textContent;
+    if (navigator.share) navigator.share({ title: 'Ruta del día · MantenGO', text: txt, url: url }).catch(function () {});
+    else window.open('https://wa.me/?text=' + encodeURIComponent(txt + '\n' + url), '_blank', 'noopener');
+  });
+
+  load();
+  timer = setInterval(function () { if (document.visibilityState === 'visible') load(); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') load(); });
+})();
+</script>
+</body>
+</html>

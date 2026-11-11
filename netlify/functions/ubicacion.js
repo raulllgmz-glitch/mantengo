@@ -29,7 +29,10 @@ const F = {
   falla: 'Solicitud Falla',
   serie: 'Serie',
   tipo: 'Tipo de Servicio',
-  fachada: 'Fachada'
+  fachada: 'Fachada',
+  evid: 'Evidencias',
+  proceso: 'Hora en proceso',
+  comentario: 'Comentario Cierre'
 };
 const PDV = [F.dir, F.coords, F.contacto, F.tel, F.falla, F.serie, F.tipo, F.fachada];
 
@@ -160,7 +163,7 @@ exports.handler = async (event) => {
   const apiKey = process.env.AIRTABLE_WRITE_TOKEN;
   if (!trackKey || !apiKey) return reply(503, { error: 'no_configurado' });
 
-  if (String(event.body || '').length > 2000) return reply(413, { error: 'tamano' });
+  if (String(event.body || '').length > 4600000) return reply(413, { error: 'tamano' });
   let b = {};
   try {
     b = JSON.parse(event.body || '{}');
@@ -176,7 +179,8 @@ exports.handler = async (event) => {
   const token = String(b.token || '');
   if (!TOKEN_RE.test(token)) return reply(404, { error: 'servicio' });
   const action = String(b.action || 'update');
-  if (!['info', 'update', 'stop'].includes(action)) return reply(400, { error: 'accion' });
+  if (!['info', 'update', 'stop', 'llegue', 'terminar', 'foto'].includes(action)) return reply(400, { error: 'accion' });
+  if (action !== 'foto' && String(event.body || '').length > 2000) return reply(413, { error: 'tamano' });
 
   try {
     const rec = await findRecord(token, apiKey, action === 'info');
@@ -187,7 +191,59 @@ exports.handler = async (event) => {
     const e = norm(etapa);
     const info = { folio: f[F.folio] || '', lugar: f[F.lugar] || '', etapa };
 
-    if (f[F.cierre] || e === 'terminado' || e === 'cerrado') return reply(409, { error: 'terminado', ...info });
+    const cerrado = !!f[F.cierre] || e === 'terminado' || e === 'cerrado';
+
+    // Evidencia fotográfica (JPEG en base64, ya reducida por el teléfono). Se permite aunque ya esté cerrado.
+    if (action === 'foto') {
+      const data = String(b.data || '');
+      if (data.length < 200 || data.length > 4400000 || !/^[A-Za-z0-9+/]+=*$/.test(data) || !data.startsWith('/9j/')) {
+        return reply(400, { error: 'foto' });
+      }
+      const name = `evidencia-${String(info.folio || 'servicio').replace(/[^A-Za-z0-9_-]/g, '')}-${Date.now()}.jpg`;
+      const r = await fetch(
+        `https://content.airtable.com/v0/${AT_BASE}/${rec.id}/${encodeURIComponent(F.evid)}/uploadAttachment`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentType: 'image/jpeg', file: data, filename: name })
+        }
+      );
+      if (!r.ok) {
+        console.error('ubicacion foto', r.status);
+        if (r.status === 401 || r.status === 403) return reply(502, { error: 'permiso' });
+        if (r.status === 404 || r.status === 422) return reply(422, { error: 'campos' });
+        return reply(502, { error: 'airtable' });
+      }
+      return reply(200, { ok: true, foto: true });
+    }
+
+    if (cerrado) return reply(409, { error: 'terminado', ...info });
+
+    // "Llegué": etapa En proceso y se deja de compartir la posición. Se puede repetir sin problema.
+    if (action === 'llegue') {
+      if (e !== 'en proceso') {
+        const base = { [F.etapa]: 'En Proceso', [F.lat]: null, [F.lon]: null, [F.upd]: null };
+        let r = await patchRecord(rec.id, { ...base, [F.proceso]: new Date().toISOString() }, apiKey);
+        if (!r.ok && r.status === 422) r = await patchRecord(rec.id, base, apiKey);
+        if (!r.ok) return fail(r);
+      }
+      return reply(200, { ok: true, llegue: true, ...info, etapa: 'En Proceso' });
+    }
+
+    // "Terminé": fecha de cierre (la que fuerza Terminado), comentario opcional y fin del seguimiento.
+    if (action === 'terminar') {
+      const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+      const coment = String(b.comentario || '').trim().slice(0, 500);
+      const full = { [F.cierre]: hoy, [F.etapa]: 'Terminado', [F.lat]: null, [F.lon]: null, [F.upd]: null };
+      if (coment) full[F.comentario] = coment;
+      const sinEtapa = { ...full };
+      delete sinEtapa[F.etapa];
+      let r = await patchRecord(rec.id, full, apiKey);
+      if (!r.ok && r.status === 422) r = await patchRecord(rec.id, sinEtapa, apiKey);
+      if (!r.ok) return fail(r);
+      return reply(200, { ok: true, terminado: true, ...info, etapa: 'Terminado' });
+    }
+
     if (action === 'info') return reply(200, { ok: true, ...info, pdv: pdvInfo(f) });
 
     if (action === 'stop') {

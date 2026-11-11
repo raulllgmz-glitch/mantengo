@@ -34,6 +34,33 @@
   status = 200
   force = true
 
+# App de solicitud de servicios (liga personal del cliente): /n/<código>
+[[redirects]]
+  from = "/n/*"
+  to = "/n.html"
+  status = 200
+  force = true
+
+# La app de solicitud crea servicios y sube fotos aquí (exige el código del cliente)
+[[redirects]]
+  from = "/api/solicitud"
+  to = "/.netlify/functions/solicitud"
+  status = 200
+  force = true
+
+# Ruta del día de un cliente: /r/<código>
+[[redirects]]
+  from = "/r/*"
+  to = "/r.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/ruta"
+  to = "/.netlify/functions/ruta"
+  status = 200
+  force = true
+
 # El técnico envía su posición aquí (escribe en Airtable, exige clave)
 [[redirects]]
   from = "/api/ubicacion"
@@ -46,3 +73,9 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"

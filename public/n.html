@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solicitar servicio · MantenGO</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#0F1B24">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+:root{--bg:#0F1B24;--card:#16262F;--line:#2A3E4D;--orange:#F5A623;--muted:#A9B8C3;--ok:#4CD38A;--bad:#FF8A8A}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 120px;display:flex;flex-direction:column;gap:22px}
+.logo{width:170px;height:auto}
+h1{margin:4px 0 0;font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.sub{font-size:13.5px;color:var(--muted);margin-top:4px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec>.t,.lbl{font-size:13px;font-weight:700;color:#D5DEE5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:56px;padding:8px 12px;border-radius:14px;background:var(--card);border:1.5px solid var(--line);color:#D5DEE5;text-align:left;font:inherit;font-size:14px;font-weight:600;line-height:1.25;cursor:pointer}
+.chip[aria-pressed="true"]{background:rgba(245,166,35,.16);border-color:var(--orange);color:#fff;font-weight:700}
+.pill{height:44px;padding:0 16px;border-radius:999px;background:var(--card);border:1.5px solid var(--line);color:#D5DEE5;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.pill[aria-pressed="true"]{background:rgba(245,166,35,.16);border-color:var(--orange);color:#fff;font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text],input[type=tel],input[type=date],textarea{width:100%;border-radius:14px;border:1px solid var(--line);background:var(--card);color:#fff;font:inherit;font-size:16px;padding:0 14px;height:50px}
+textarea{height:auto;min-height:96px;padding:12px 14px;line-height:1.4;resize:vertical}
+input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+::placeholder{color:#8497A5}
+.field{display:flex;flex-direction:column;gap:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#map{height:230px;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.leaflet-tile-pane{filter:invert(100%) hue-rotate(180deg) brightness(92%) contrast(88%) saturate(70%)}
+.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;background:var(--orange);border:3px solid #0F1B24;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border:0;border-radius:999px;background:var(--orange);color:#0F1B24;font:inherit;font-size:16px;font-weight:800;cursor:pointer;text-decoration:none}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.sec2{background:transparent;color:#fff;border:1.5px solid #3A5062;font-weight:700}
+.small{font-size:12.5px;color:var(--muted)}
+.photos{display:flex;gap:10px;flex-wrap:wrap}
+.ph{position:relative;width:72px;height:72px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph button{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(15,27,36,.85);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+.add{width:72px;height:72px;border-radius:14px;background:transparent;border:1.5px dashed #3A5062;color:var(--muted);font:inherit;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid #1E3040;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+.bar>div{max-width:520px;margin:0 auto}
+.err{color:var(--bad);font-weight:600;font-size:14px;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.folio{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
+.k{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--orange)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
+
+  <section class="card" id="bad" hidden>
+    <p class="err">Esta liga no es válida o ya no está activa.</p>
+    <p class="small" style="margin:8px 0 0">Pídele a MantenGO tu liga personal de solicitud.</p>
+  </section>
+
+  <section class="card" id="load"><span class="small">Cargando…</span></section>
+
+  <form id="form" hidden novalidate autocomplete="on">
+    <div style="display:flex;flex-direction:column;gap:22px">
+      <div>
+        <h1>Solicitar servicio</h1>
+        <div class="sub" id="para"></div>
+      </div>
+
+      <div class="sec" role="group" aria-labelledby="t1">
+        <div class="t" id="t1">1 · ¿Qué necesitas?</div>
+        <div class="grid2" id="tipos"></div>
+      </div>
+
+      <div class="sec" role="group" aria-labelledby="t2">
+        <div class="t" id="t2">2 · ¿Dónde y en qué equipo?</div>
+        <div id="recWrap" hidden>
+          <div class="small" style="margin-bottom:8px">Tus tiendas recientes</div>
+          <div class="row" id="rec"></div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="lugar">Nombre del establecimiento *</label>
+          <input id="lugar" type="text" maxlength="120" placeholder="Ej. Abarrotes La Esperanza" autocomplete="organization">
+        </div>
+        <div class="field">
+          <label class="lbl" for="dir">Dirección</label>
+          <input id="dir" type="text" maxlength="200" placeholder="Calle, número, colonia, ciudad" autocomplete="street-address">
+        </div>
+        <div class="field">
+          <span class="lbl">Marca el punto en el mapa <span class="small">(opcional, ayuda al técnico a llegar)</span></span>
+          <div id="map" role="application" aria-label="Mapa para marcar la ubicación"></div>
+          <div class="row" style="align-items:center">
+            <button class="pill" type="button" id="loc">Usar mi ubicación</button>
+            <span class="small" id="coordtxt">Toca el mapa para poner el pin</span>
+          </div>
+        </div>
+        <div class="two">
+          <div class="field">
+            <label class="lbl" for="contacto">Quién nos recibe</label>
+            <input id="contacto" type="text" maxlength="80" placeholder="Nombre" autocomplete="name">
+          </div>
+          <div class="field">
+            <label class="lbl" for="tel">Teléfono</label>
+            <input id="tel" type="tel" inputmode="tel" maxlength="30" placeholder="442 123 4567" autocomplete="tel">
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="serie">ID o serie del equipo <span class="small">(opcional)</span></label>
+          <input id="serie" type="text" maxlength="60" placeholder="Ej. 4821" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="sec" role="group" aria-labelledby="t3">
+        <label class="t" id="t3" for="falla">3 · Cuéntanos qué pasa *</label>
+        <textarea id="falla" maxlength="500" placeholder="Ej. No enfría, gotea agua por abajo…"></textarea>
+        <div class="photos" id="photos">
+          <button class="add" type="button" id="addph" aria-label="Agregar foto">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+            Foto
+          </button>
+        </div>
+        <input id="fileph" type="file" accept="image/*" multiple hidden>
+        <div class="small">Hasta 5 fotos. Ayudan a que el técnico lleve lo necesario.</div>
+      </div>
+
+      <div class="sec" role="group" aria-labelledby="t4">
+        <div class="t" id="t4">4 · ¿Cuándo te conviene?</div>
+        <div class="row" id="fechas">
+          <button class="pill" type="button" data-f="hoy" aria-pressed="false">Hoy</button>
+          <button class="pill" type="button" data-f="manana" aria-pressed="true">Mañana</button>
+          <button class="pill" type="button" data-f="otra" aria-pressed="false">Elegir fecha</button>
+        </div>
+        <input id="fecha" type="date" hidden aria-label="Fecha que te conviene">
+        <div class="small">Te confirmamos el horario exacto después.</div>
+      </div>
+
+      <div class="hp" aria-hidden="true"><label>No llenar<input id="hp" type="text" tabindex="-1" autocomplete="off"></label></div>
+      <p class="err" id="err" role="alert" hidden></p>
+    </div>
+    <div class="bar"><div><button class="btn" id="send" type="submit">Enviar solicitud</button></div></div>
+  </form>
+
+  <section id="done" hidden>
+    <div class="card">
+      <div class="k">Solicitud recibida</div>
+      <div class="folio" id="dfolio">—</div>
+      <p style="margin:6px 0 0" id="dmsg">Ya la tenemos. Te confirmamos el horario y desde esta liga puedes ver cómo va.</p>
+      <p class="small" id="dfoto" style="margin:8px 0 0" hidden></p>
+    </div>
+    <a class="btn" id="dver" href="#" style="margin-top:14px">Ver seguimiento</a>
+    <a class="btn sec2" id="dwa" href="#" target="_blank" rel="noopener" style="margin-top:10px">Compartir por WhatsApp</a>
+    <button class="btn sec2" id="dnew" type="button" style="margin-top:10px">Hacer otra solicitud</button>
+  </section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function () {
+  'use strict';
+  var CODE = (location.pathname.split('/')[2] || '').split('?')[0];
+  var API = '/api/solicitud';
+  var st = { tipo: '', lat: null, lon: null, fecha: 'manana', fotos: [], sending: false };
+  var map = null, marker = null;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id, on) { $(id).hidden = !on; }
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  function call(body) {
+    body.code = CODE;
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+  }
+  function showErr(t) { var e = $('err'); e.textContent = t || ''; e.hidden = !t; if (t) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(CODE)) { show('load', false); show('bad', true); return; }
+
+  /* ---------- carga ---------- */
+  call({ action: 'info' }).then(function (d) {
+    show('load', false);
+    if (d._status === 404) return show('bad', true);
+    if (!d.ok) { $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Revisa tu internet e inténtalo de nuevo.</p>'; return; }
+    $('para').textContent = d.nombre ? 'Para ' + d.nombre : '';
+    buildTipos(d.tipos || []);
+    buildRecientes(d.recientes || []);
+    $('contacto').value = lsGet('mg_n_contacto');
+    $('tel').value = lsGet('mg_n_tel');
+    show('form', true);
+    initMap();
+  }).catch(function () { show('load', false); $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Revisa tu internet e inténtalo de nuevo.</p>'; });
+
+  function buildTipos(list) {
+    var box = $('tipos'); box.innerHTML = '';
+    list.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', 'false'); b.textContent = t;
+      b.addEventListener('click', function () {
+        st.tipo = t;
+        Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function buildRecientes(list) {
+    if (!list.length) return;
+    show('recWrap', true);
+    var box = $('rec');
+    list.forEach(function (r) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'pill'; b.setAttribute('aria-pressed', 'false'); b.textContent = r.lugar;
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+        $('lugar').value = r.lugar; $('dir').value = r.dir || '';
+        if (r.contacto) $('contacto').value = r.contacto;
+        if (r.tel) $('tel').value = r.tel;
+        $('serie').value = r.serie || '';
+        if (r.lat !== null && r.lon !== null) setPin(r.lat, r.lon, true); else clearPin();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  /* ---------- mapa ---------- */
+  function initMap() {
+    if (!window.L) { $('map').innerHTML = '<p class="small" style="padding:14px">El mapa no está disponible. Escribe la dirección y listo.</p>'; return; }
+    map = L.map('map', { zoomControl: true, attributionControl: true }).setView([20.5888, -100.3899], 12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+    map.on('click', function (e) { setPin(e.latlng.lat, e.latlng.lng, false); });
+  }
+  function setPin(lat, lon, fly) {
+    st.lat = lat; st.lon = lon;
+    $('coordtxt').textContent = 'Pin: ' + lat.toFixed(5) + ', ' + lon.toFixed(5);
+    if (!map) return;
+    if (!marker) {
+      marker = L.marker([lat, lon], { draggable: true, icon: L.divIcon({ className: '', html: '<div class="pin"></div>', iconSize: [26, 26], iconAnchor: [4, 26] }) }).addTo(map);
+      marker.on('dragend', function () { var p = marker.getLatLng(); setPin(p.lat, p.lng, false); });
+    } else marker.setLatLng([lat, lon]);
+    if (fly) map.setView([lat, lon], 16);
+  }
+  function clearPin() { st.lat = null; st.lon = null; $('coordtxt').textContent = 'Toca el mapa para poner el pin'; if (marker && map) { map.removeLayer(marker); marker = null; } }
+  $('loc').addEventListener('click', function () {
+    var b = this;
+    if (!navigator.geolocation) { $('coordtxt').textContent = 'Este teléfono no permite ubicación.'; return; }
+    b.disabled = true; $('coordtxt').textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition(function (p) { b.disabled = false; setPin(p.coords.latitude, p.coords.longitude, true); },
+      function () { b.disabled = false; $('coordtxt').textContent = 'No pude obtener tu ubicación. Toca el mapa para marcarla.'; },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  });
+
+  /* ---------- fecha ---------- */
+  var hoy = new Date(); var iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+  $('fecha').min = iso;
+  Array.prototype.forEach.call($('fechas').children, function (b) {
+    b.addEventListener('click', function () {
+      st.fecha = b.getAttribute('data-f');
+      Array.prototype.forEach.call($('fechas').children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
+      show('fecha', st.fecha === 'otra');
+      if (st.fecha === 'otra') $('fecha').focus();
+    });
+  });
+
+  /* ---------- fotos ---------- */
+  $('addph').addEventListener('click', function () { $('fileph').click(); });
+  $('fileph').addEventListener('change', function () {
+    var files = Array.prototype.slice.call(this.files || []); this.value = '';
+    files.slice(0, Math.max(0, 5 - st.fotos.length)).forEach(function (f) {
+      shrink(f).then(function (b64) { st.fotos.push(b64); drawPhotos(); }).catch(function () { showErr('No se pudo leer una de las fotos.'); });
+    });
+  });
+  function shrink(file) {
+    return new Promise(function (ok, no) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, 1600 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var u = c.toDataURL('image/jpeg', 0.8); ok(u.slice(u.indexOf(',') + 1));
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); no(new Error('imagen')); };
+      im.src = url;
+    });
+  }
+  function drawPhotos() {
+    var box = $('photos');
+    Array.prototype.slice.call(box.querySelectorAll('.ph')).forEach(function (n) { box.removeChild(n); });
+    st.fotos.forEach(function (b64, i) {
+      var d = document.createElement('div'); d.className = 'ph';
+      var im = document.createElement('img'); im.alt = 'Foto ' + (i + 1); im.src = 'data:image/jpeg;base64,' + b64;
+      var x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', 'Quitar foto ' + (i + 1)); x.textContent = '×';
+      x.addEventListener('click', function () { st.fotos.splice(i, 1); drawPhotos(); });
+      d.appendChild(im); d.appendChild(x); box.insertBefore(d, $('addph'));
+    });
+    $('addph').hidden = st.fotos.length >= 5;
+  }
+
+  /* ---------- enviar ---------- */
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (st.sending) return;
+    showErr('');
+    var lugar = $('lugar').value.trim(), falla = $('falla').value.trim(), tel = $('tel').value.trim();
+    if (!st.tipo) return showErr('Elige qué necesitas (paso 1).');
+    if (lugar.length < 2) { $('lugar').focus(); return showErr('Escribe el nombre del establecimiento.'); }
+    if (tel && (tel.replace(/\D/g, '').length < 8)) { $('tel').focus(); return showErr('Revisa el teléfono: parece incompleto.'); }
+    if (falla.length < 3) { $('falla').focus(); return showErr('Cuéntanos brevemente qué pasa.'); }
+    var fecha = st.fecha;
+    if (fecha === 'otra') { fecha = $('fecha').value; if (!fecha) return showErr('Elige la fecha que te conviene.'); }
+    st.sending = true; $('send').disabled = true; $('send').textContent = 'Enviando…';
+    lsSet('mg_n_contacto', $('contacto').value.trim()); lsSet('mg_n_tel', tel);
+    call({ action: 'crear', tipo: st.tipo, lugar: lugar, dir: $('dir').value.trim(), lat: st.lat, lon: st.lon,
+      contacto: $('contacto').value.trim(), tel: tel, serie: $('serie').value.trim(), falla: falla, fecha: fecha, hp: $('hp').value })
+      .then(function (d) {
+        if (!d.ok) {
+          st.sending = false; $('send').disabled = false; $('send').textContent = 'Enviar solicitud';
+          var m = { 429: 'Ya enviaste varias solicitudes en poco tiempo. Llámanos para agilizarlo.', 404: 'Esta liga ya no está activa.',
+            400: 'Revisa los datos e inténtalo de nuevo.' };
+          return showErr(m[d._status] || 'No se pudo enviar. Revisa tu internet e inténtalo de nuevo.');
+        }
+        subirFotos(d.token).then(function (fallaron) { terminado(d, fallaron); });
+      }).catch(function () {
+        st.sending = false; $('send').disabled = false; $('send').textContent = 'Enviar solicitud';
+        showErr('No se pudo enviar. Revisa tu internet e inténtalo de nuevo.');
+      });
+  });
+
+  function subirFotos(token) {
+    var fallaron = 0, i = 0, total = st.fotos.length;
+    function next() {
+      if (i >= total) return Promise.resolve(fallaron);
+      $('send').textContent = 'Subiendo fotos ' + (i + 1) + ' de ' + total + '…';
+      var data = st.fotos[i++];
+      return call({ action: 'foto', token: token, data: data }).then(function (r) { if (!r.ok) fallaron++; }, function () { fallaron++; }).then(next);
+    }
+    return next();
+  }
+
+  function terminado(d, fallaron) {
+    show('form', false); show('done', true);
+    window.scrollTo(0, 0);
+    $('dfolio').textContent = d.folio || 'Solicitud enviada';
+    var url = location.origin + '/s/' + d.token;
+    $('dver').href = '/s/' + d.token;
+    var txt = 'Hola, ya solicité un servicio con MantenGO' + (d.folio ? ' (' + d.folio + ')' : '') + '. Sigue el avance aquí: ' + url;
+    $('dwa').href = 'https://wa.me/?text=' + encodeURIComponent(txt);
+    var f = $('dfoto');
+    if (fallaron) { f.hidden = false; f.textContent = fallaron === 1 ? 'Una foto no se pudo subir; tu solicitud sí quedó registrada.' : fallaron + ' fotos no se pudieron subir; tu solicitud sí quedó registrada.'; }
+  }
+  $('dnew').addEventListener('click', function () { location.reload(); });
+})();
+</script>
+</body>
+</html>

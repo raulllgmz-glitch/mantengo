@@ -163,3 +163,27 @@ Cliente ──► /s/<token> ──► mapa con camión y distancia, se actualiz
 La liga `/t/<token>` muestra, tras ingresar la clave: fachada, dirección, contacto, teléfono, falla/serie y botones Cómo llegar (Google Maps), Waze, Llamar, WhatsApp y Compartir ubicación.
 Campos de Airtable usados: Dirección, Coordenadas ("lat, lon"), Contacto, Telefono, Solicitud Falla, Serie, Tipo de Servicio y, opcional, **Fachada** (adjuntos). Nunca se envían montos ni facturas.
 El marcador del técnico en el mapa es `public/assets/camion.png`.
+
+## 9. Uso sin señal (liga del técnico)
+`public/sw.js` guarda la página del técnico y la fachada. Si el técnico la abrió al menos una vez con internet, después carga sin datos con los últimos datos del PDV guardados, y al volver la señal envía su posición. Los mapas para navegar deben descargarse en Google Maps/Waze.
+
+## 10. Avance del servicio desde la liga del técnico
+Botones "Llegué", fotos de evidencia y "Terminar servicio" (con comentario). Se guardan en una cola del teléfono (IndexedDB) y se envían en orden al haber señal.
+- Llegué → Etapa "En proceso" y deja de compartir posición.
+- Foto → se reduce a 1600 px y se sube al campo **Evidencias** (requiere que el token de escritura tenga `data.records:write`).
+- Terminar → Fecha de Cierre (hoy, hora CDMX), Etapa "Terminado" y Comentario Cierre.
+
+## 11. App de solicitud de servicios (`/n/<código>`)
+Cada cliente (tabla **Marca**) tiene una liga personal `https://mantengo.netlify.app/n/<Código solicitud>`. El cliente elige el tipo de servicio, su tienda (o una reciente), marca el pin, cuenta la falla, agrega fotos y la fecha. Se crea un registro en Servicios con Etapa "Recibido", su Token Público y el vínculo al cliente; al terminar ve su folio y la liga de seguimiento `/s/<token>`.
+
+Airtable — tabla **Marca**: `Código solicitud` (texto) y `Acceso activo` (casilla). Opcional: `Liga_Solicitud` = `"https://mantengo.netlify.app/n/"&{Código solicitud}`.
+Airtable — tabla **Servicios** (opcionales; si faltan se omiten): `Fecha solicitada` (fecha), `Fotos solicitud` (adjuntos; si no existe, las fotos van a Evidencias).
+Variables de Netlify: usa `AIRTABLE_WRITE_TOKEN` (con acceso de lectura y escritura a la base). Opcional `AIRTABLE_MARCA_TABLE_ID`.
+Protecciones: código secreto por cliente, casilla "Acceso activo" para apagarlo, máximo 8 solicitudes por hora por cliente, trampa anti-bots, revisión de origen.
+
+## 12. Ruta del día para un cliente (`/r/<código>`)
+Liga de solo lectura que muestra los servicios de un cliente programados un día, ordenados por hora, con su estatus en vivo y enlace a cada seguimiento. `?d=manana`, `?d=hoy` o `?d=2026-11-12`.
+- Tabla **Marca**: `Código ruta` (texto, secreto) y `Acceso ruta` (casilla). Opcional `Liga_Ruta_Manana` = `"https://mantengo.netlify.app/r/"&{Código ruta}&"?d=manana"`.
+- Tabla **Servicios**: `Fecha Programada` debe ser "Fecha con hora" (si solo tiene fecha, la parada dice "Horario por confirmar"); `Cliente` vinculado; `Técnico` opcional.
+- La función usa `AIRTABLE_TOKEN` (solo lectura).
+Mapa: la ruta muestra un mini mapa con las paradas numeradas (usa el campo `Coordenadas` de Servicios, "lat, lon"). Si hay varias camionetas (distintos valores en `Técnico`), se agrupan por técnico, cada una con su color y su propia numeración.

@@ -32,13 +32,14 @@ const F = {
   latT: 'Lat técnico',
   lonT: 'Lon técnico',
   ubicAct: 'Ubicación actualizada',
+  proceso: 'Hora en proceso',
   tecnico: 'Técnico',
   cierre: 'Fecha de Cierre',
   comentario: 'Comentario Cierre',
   fotos: 'Evidencias'
 };
 // Campos opcionales: si alguno todavía no existe en Airtable, la página sigue funcionando sin él.
-const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.programada2, F.camino, F.estimada, F.estimada2, F.latT, F.lonT, F.ubicAct, F.tecnico, F.cierre, F.comentario, F.fotos];
+const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.programada2, F.camino, F.estimada, F.estimada2, F.latT, F.lonT, F.ubicAct, F.proceso, F.tecnico, F.cierre, F.comentario, F.fotos];
 
 const WHATSAPP = '524424501585';
 const TZ = 'America/Mexico_City';
@@ -240,6 +241,7 @@ async function fetchService(token) {
         creado: rec.createdTime || '',
         programada: f[F.programada] || f[F.programada2] || '',
         camino: f[F.camino] || '',
+        proceso: f[F.proceso] || '',
         estimada: f[F.estimada] || f[F.estimada2] || '',
         tlat: num(f[F.latT]),
         tlon: num(f[F.lonT]),
@@ -418,8 +420,10 @@ function stageDetail(i, s) {
   if (i === 1) return s.programada ? `Visita: ${fmtDT(s.programada)}` : '';
   if (i === 2) {
     const t = fmtTime(s.camino);
-    return [t ? `Salió a las ${t}` : '', s.tecnico ? `Técnico: ${s.tecnico}` : ''].filter(Boolean).join(' · ');
+    const u = !t ? fmtTime(s.tupd) : '';
+    return [t ? `Salió a las ${t}` : u ? `Última actualización a las ${u}` : '', s.tecnico ? `Técnico: ${s.tecnico}` : ''].filter(Boolean).join(' · ');
   }
+  if (i === 3) { const p = fmtTime(s.proceso); return p ? `Llegó a las ${p}` : ''; }
   if (i === 4) return fmtDate(s.cierre);
   return '';
 }
