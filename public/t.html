@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seguimiento del técnico · MantenGO</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0F1B24">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0F1B24;--card:#16262F;--line:#2A3E4D;--orange:#F5A623;--muted:#A9B8C3;--ok:#4CD38A;--bad:#FF6B6B}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:14px}
+.logo{width:190px;height:auto}
+h1{margin:6px 0 0;font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.k{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--orange)}
+.v{font-size:17px;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
+input{width:100%;height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:#fff;font:inherit;font-size:17px;padding:0 14px}
+input:focus{outline:2px solid var(--orange);outline-offset:1px}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:0;border-radius:999px;background:var(--orange);color:#0F1B24;font:inherit;font-size:17px;font-weight:800;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.stop{background:transparent;color:#fff;border:1.5px solid #3A5062}
+.hint{margin:10px 0 0;font-size:13.5px;color:var(--muted)}
+.state{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
+.dot{width:12px;height:12px;border-radius:50%;background:#3A5062;flex:none}
+.dot.live{background:var(--ok);box-shadow:0 0 0 0 rgba(76,211,138,.6);animation:p 1.8s infinite}
+.dot.err{background:var(--bad)}
+@keyframes p{70%{box-shadow:0 0 0 10px rgba(76,211,138,0)}100%{box-shadow:0 0 0 0 rgba(76,211,138,0)}}
+.small{font-size:13px;color:var(--muted);margin-top:6px}
+.err{color:var(--bad);font-weight:600}
+.link{background:none;border:0;color:var(--orange);font:inherit;font-size:13.5px;text-decoration:underline;cursor:pointer;padding:6px 0}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.dot.live{animation:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
+  <h1>Seguimiento del técnico</h1>
+
+  <section class="card" id="bad" hidden>
+    <p class="err" style="margin:0">Este enlace no es válido.</p>
+    <p class="hint">Ábrelo desde el botón del servicio en la app.</p>
+  </section>
+
+  <section class="card" id="keybox" hidden>
+    <label for="key">Clave del equipo</label>
+    <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text">
+    <p class="hint" id="keyerr" hidden></p>
+    <button class="btn" id="keyok" type="button" style="margin-top:14px">Continuar</button>
+    <p class="hint">Solo se pide una vez en este teléfono.</p>
+  </section>
+
+  <section class="card" id="svc" hidden>
+    <div class="k">Servicio</div>
+    <div class="v" id="folio">—</div>
+    <div class="small" id="lugar"></div>
+    <button class="link" id="chgkey" type="button">Cambiar clave</button>
+  </section>
+
+  <section class="card" id="ctl" hidden>
+    <div class="state"><span class="dot" id="dot"></span><span id="st">Listo para salir</span></div>
+    <div class="small" id="det"></div>
+    <button class="btn" id="go" type="button" style="margin-top:16px">Iniciar viaje</button>
+    <button class="btn stop" id="halt" type="button" style="margin-top:10px" hidden>Detener</button>
+    <p class="hint" id="warn">Mientras vas en camino deja esta pantalla abierta y encendida. El cliente verá tu distancia hasta que llegues.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var TOKEN = (location.pathname.split('/')[2] || '').split('?')[0];
+  var OK = /^[A-Za-z0-9_-]{16,64}$/.test(TOKEN);
+  var API = '/api/ubicacion';
+  var KEYNAME = 'mg_track_key';
+  var INTERVAL = 10000;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id, on) { $(id).hidden = !on; }
+  function getKey() { try { return localStorage.getItem(KEYNAME) || ''; } catch (e) { return ''; } }
+  function setKey(v) { try { if (v) localStorage.setItem(KEYNAME, v); else localStorage.removeItem(KEYNAME); } catch (e) {} }
+
+  var watchId = null, timer = null, latest = null, lastSentAt = 0, sentCount = 0, wake = null, running = false;
+
+  if (!OK) { show('bad', true); return; }
+
+  function call(action, extra) {
+    var body = { token: TOKEN, key: getKey(), action: action };
+    if (extra) for (var k in extra) body[k] = extra[k];
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+  }
+
+  function setState(txt, cls, det) {
+    $('st').textContent = txt;
+    $('dot').className = 'dot' + (cls ? ' ' + cls : '');
+    $('det').textContent = det || '';
+  }
+
+  function needKey(msg) {
+    stop(true);
+    show('svc', false); show('ctl', false); show('keybox', true);
+    var e = $('keyerr');
+    if (msg) { e.textContent = msg; e.className = 'hint err'; e.hidden = false; } else { e.hidden = true; }
+    $('key').value = '';
+    $('key').focus();
+  }
+
+  function loadInfo() {
+    call('info').then(function (d) {
+      if (d._status === 401) { setKey(''); return needKey('La clave no es correcta.'); }
+      if (d._status === 404) { show('keybox', false); show('svc', false); show('ctl', false); show('bad', true); return; }
+      if (d._status === 503) { return needKey('El seguimiento aún no está configurado. Avisa a MantenGO.'); }
+      if (d._status >= 500 || !d._status) { return needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); }
+      show('keybox', false); show('svc', true); show('ctl', true);
+      $('folio').textContent = d.folio || '—';
+      $('lugar').textContent = d.lugar || '';
+      if (d.error === 'terminado') {
+        setState('Servicio terminado', '', 'Ya no se comparte la ubicación.');
+        $('go').disabled = true;
+      } else {
+        $('go').disabled = false;
+        setState('Listo para salir', '', '');
+      }
+    }).catch(function () { needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); });
+  }
+
+  function hhmmss(d) { return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); }
+
+  function send() {
+    if (!latest || !running) return;
+    var p = latest;
+    call('update', { lat: p.lat, lon: p.lon }).then(function (d) {
+      if (!running) return;
+      if (d._status === 401) { setKey(''); return needKey('La clave cambió. Escríbela de nuevo.'); }
+      if (d.error === 'terminado') { stop(false); setState('Servicio terminado', '', 'Ya no se comparte la ubicación.'); return; }
+      if (d.llego) { stop(false); setState('Llegaste', '', 'El servicio ya está en proceso. Se dejó de compartir tu ubicación.'); return; }
+      if (d._status === 422) { setState('Faltan campos en Airtable', 'err', 'Avisa a MantenGO: faltan Lat técnico, Lon técnico o Ubicación actualizada.'); return; }
+      if (!d.ok) { setState('Sin conexión con el servidor', 'err', 'Reintentando…'); return; }
+      sentCount++; lastSentAt = Date.now();
+      setState('Compartiendo tu ubicación', 'live',
+        'Último envío ' + hhmmss(new Date(lastSentAt)) + ' · precisión ' + Math.round(p.acc) + ' m · envíos ' + sentCount +
+        (d.sinEtapa ? ' · Avisa que falta la opción "En camino" en Etapa.' : ''));
+    }).catch(function () {
+      if (running) setState('Sin internet', 'err', 'Reintentando…');
+    });
+  }
+
+  function onPos(pos) {
+    latest = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 0 };
+    if (!lastSentAt && running && sentCount === 0 && !onPos.first) { onPos.first = true; send(); }
+  }
+
+  function onErr(err) {
+    if (err && err.code === 1) {
+      stop(false);
+      setState('Sin permiso de ubicación', 'err', 'Activa la ubicación para este sitio en los ajustes del navegador y vuelve a tocar Iniciar viaje.');
+    } else if (err && err.code === 2) {
+      setState('No se encuentra tu ubicación', 'err', 'Sal a un lugar abierto o revisa que el GPS esté prendido.');
+    } else {
+      setState('Buscando tu ubicación…', '', 'Puede tardar unos segundos.');
+    }
+  }
+
+  function lock() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (w) { wake = w; w.addEventListener('release', function () { wake = null; }); }).catch(function () {});
+  }
+
+  function start() {
+    if (!navigator.geolocation) { setState('Este teléfono no permite ubicación', 'err', 'Prueba con Chrome o Safari actualizado.'); return; }
+    running = true; latest = null; sentCount = 0; lastSentAt = 0; onPos.first = false;
+    $('go').hidden = true; $('halt').hidden = false;
+    setState('Buscando tu ubicación…', '', 'Acepta el permiso de ubicación si el navegador lo pide.');
+    watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 5000, timeout: 25000 });
+    timer = setInterval(send, INTERVAL);
+    lock();
+  }
+
+  function stop(silent) {
+    var was = running;
+    running = false;
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (timer) { clearInterval(timer); timer = null; }
+    if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+    $('go').hidden = false; $('halt').hidden = true;
+    if (was && !silent) { call('stop').catch(function () {}); }
+  }
+
+  $('go').addEventListener('click', start);
+  $('halt').addEventListener('click', function () { stop(false); setState('Seguimiento detenido', '', 'El cliente ya no verá tu ubicación.'); });
+  $('keyok').addEventListener('click', function () {
+    var v = $('key').value.trim();
+    if (!v) return;
+    setKey(v); show('keybox', false); loadInfo();
+  });
+  $('key').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('keyok').click(); });
+  $('chgkey').addEventListener('click', function () { needKey(''); });
+  document.addEventListener('visibilitychange', function () { if (running && document.visibilityState === 'visible') { lock(); send(); } });
+  window.addEventListener('pagehide', function () { /* sin aviso: si se cierra, la posición caduca sola a los 10 min */ });
+
+  if (getKey()) loadInfo(); else { show('keybox', true); }
+})();
+</script>
+</body>
+</html>

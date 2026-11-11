@@ -11,6 +11,8 @@ Glide (botón Compartir) ──► link /s/<token> ──► Netlify Function �
 - La función pide **solo** estos campos: Folio, Tipo de Servicio, Solicitud Falla, Establecimiento, Dirección, Coordenadas, Serie, Etapa, Fecha programada, Hora en camino, Técnico, Fecha de Cierre, Comentario Cierre y Evidencias. Los montos y las facturas no se piden.
 - La página no se guarda en caché: cada visita lee Airtable y trae URLs de fotos frescas (las de Airtable caducan en pocas horas).
 - La página muestra el nombre del establecimiento bajo el título, una barra horizontal con las 5 etapas (la actual resaltada) y un despegable «Ver detalle del seguimiento» con la línea de tiempo completa.
+- Si `Coordenadas` es válida, arriba aparece un mapa con el pin del establecimiento (Leaflet con mapa de OpenStreetMap/CARTO; no necesita llaves). Sin coordenadas, no hay mapa.
+- Debajo del estatus hay tres botones: Compartir (WhatsApp con el link), WhatsApp con MantenGO y Llamar.
 - La tarjeta «Ubicación» muestra dirección, coordenadas y un botón «Ver en mapa» (Google Maps).
 - Mientras el servicio no esté terminado, la página se recarga sola cada 60 segundos.
 - Si un campo opcional aún no existe en Airtable, la página funciona sin él.
@@ -41,6 +43,10 @@ Campos nuevos:
 | `Fecha programada` | Fecha con hora | Visita agendada. Se muestra en hora del centro de México. |
 | `Hora en camino` | Fecha con hora | Cuándo salió el técnico. Puede llenarla una automatización al pasar a `En camino`. |
 | `Coordenadas` | Texto de una línea | Ya existe. Formato `20.58805, -100.38986` (latitud, longitud). También acepta un link de Google Maps. Si falta o es inválido, el mapa se busca con establecimiento y dirección. |
+| `Llegada estimada` | Fecha con hora | Opcional. Muestra «Llega hoy antes de las 11:45 hs» mientras el servicio no termina. Si ya pasó la hora o está vacío, no se muestra. |
+| `Lat técnico` | Número, 6 decimales | La escribe el seguimiento en vivo. |
+| `Lon técnico` | Número, 6 decimales | La escribe el seguimiento en vivo. |
+| `Ubicación actualizada` | Fecha con hora | Cuándo llegó la última posición. Pasados 10 minutos se oculta. |
 | `Técnico` | Texto de una línea | Opcional. Se muestra tal cual, por eso conviene poner solo el nombre de pila. |
 
 Reglas de la etapa:
@@ -120,4 +126,35 @@ Todos los nombres están en el objeto `F` al inicio de `netlify/functions/servic
 - Es un link "al portador": quien lo recibe lo puede reenviar. Para cortarlo, desmarca `Link activo`. Para invalidarlo y generar otro, borra `Token Público` y deja que la automatización cree uno nuevo.
 - Solo se muestran fotos. Videos y otros adjuntos se ignoran.
 - La vista previa de WhatsApp se guarda en el chat al enviar el link. El link siempre muestra el estatus actual, pero un mensaje ya enviado conserva su miniatura.
-- La ubicación en vivo del técnico no está incluida: requiere que la app del equipo de campo envíe la posición.
+
+## 7. Seguimiento en vivo del técnico
+
+```
+Celular del técnico ──► /t/<token> ──► /api/ubicacion (clave + escritura) ──► Airtable
+Cliente ──► /s/<token> ──► mapa con camión y distancia, se actualiza cada 10 s (/p/<token>)
+```
+
+**Qué hace**
+- El técnico abre `https://TU-DOMINIO/t/<Token Público>` (botón en Glide), escribe la clave del equipo una sola vez y toca **Iniciar viaje**.
+- Cada 10 segundos se guarda su posición. La primera vez, el servicio pasa a **En camino** y se llena `Hora en camino`.
+- El cliente ve el camión en el mapa y la distancia en línea recta («A 3.2 km»). La página se actualiza sola.
+- Se deja de compartir cuando el técnico toca **Detener**, cuando `Etapa` pasa a **En proceso** o **Terminado**, o cuando la última posición tiene más de 10 minutos.
+
+**Configuración**
+1. Crea en Servicios los campos `Lat técnico`, `Lon técnico` (número, 6 decimales) y `Ubicación actualizada` (fecha con hora). La opción **En camino** debe existir en `Etapa`.
+2. Crea un segundo token de Airtable, solo para escribir, con permisos `data.records:read` y `data.records:write` y acceso solo a la base MantenGO.
+3. En Netlify → Environment variables agrega:
+   - `AIRTABLE_WRITE_TOKEN`: el token del paso 2.
+   - `TRACK_KEY`: una clave del equipo, de 16 caracteres o más. Se comparte con los técnicos. Para cambiarla, cambia esta variable y haz redeploy.
+4. Haz un redeploy.
+5. En Glide agrega un botón para el equipo: *Open link* a `https://TU-DOMINIO/t/` + `Token Público`.
+
+**Seguridad**
+- El token de lectura de la página del cliente sigue siendo solo lectura. La escritura vive en `netlify/functions/ubicacion.js` y exige la clave.
+- La clave se queda guardada en el teléfono del técnico. Si se pierde un teléfono, cambia `TRACK_KEY`.
+- La posición se escribe solo en el servicio cuyo link abrió el técnico, y solo si está activo y sin terminar.
+
+**Límites**
+- La página debe estar abierta y con la pantalla encendida. En iPhone y en muchos Android el navegador deja de enviar si se bloquea la pantalla o se cambia de app. Para eso se pide mantener la pantalla encendida (`Wake Lock`); una app propia lo resolvería del todo.
+- La distancia es en línea recta, no por calles. Para minutos de llegada por ruta hace falta un servicio de rutas con llave.
+- No se guarda historial: solo la última posición.

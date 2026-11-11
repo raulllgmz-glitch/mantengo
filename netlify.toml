@@ -20,6 +20,27 @@
   status = 200
   force = true
 
+# Posición del técnico para el mapa del cliente (JSON): /p/<token>
+[[redirects]]
+  from = "/p/*"
+  to = "/.netlify/functions/servicio"
+  status = 200
+  force = true
+
+# Página que abre el técnico para compartir su ubicación: /t/<token>
+[[redirects]]
+  from = "/t/*"
+  to = "/t.html"
+  status = 200
+  force = true
+
+# El técnico envía su posición aquí (escribe en Airtable, exige clave)
+[[redirects]]
+  from = "/api/ubicacion"
+  to = "/.netlify/functions/ubicacion"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]

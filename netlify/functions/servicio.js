@@ -26,13 +26,17 @@ const F = {
   etapa: 'Etapa',
   programada: 'Fecha programada',
   camino: 'Hora en camino',
+  estimada: 'Llegada estimada',
+  latT: 'Lat técnico',
+  lonT: 'Lon técnico',
+  ubicAct: 'Ubicación actualizada',
   tecnico: 'Técnico',
   cierre: 'Fecha de Cierre',
   comentario: 'Comentario Cierre',
   fotos: 'Evidencias'
 };
 // Campos opcionales: si alguno todavía no existe en Airtable, la página sigue funcionando sin él.
-const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.camino, F.tecnico, F.cierre, F.comentario, F.fotos];
+const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.camino, F.estimada, F.latT, F.lonT, F.ubicAct, F.tecnico, F.cierre, F.comentario, F.fotos];
 
 const WHATSAPP = '524424501585';
 const TZ = 'America/Mexico_City';
@@ -65,6 +69,11 @@ const norm = (s) =>
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .trim();
+
+const num = (v) => {
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 function parse(iso) {
   if (!iso) return null;
@@ -139,7 +148,13 @@ function placeholder(n) {
 // Vistas de ejemplo: /s/demo (terminado), /s/demo-recibido, /s/demo-programado, /s/demo-encamino, /s/demo-proceso
 const DEMOS = { 'demo-recibido': 0, 'demo-programado': 1, 'demo-encamino': 2, 'demo-proceso': 3, demo: 4 };
 
-function demoService(stage) {
+// Demo: el técnico se acerca al establecimiento en un ciclo de 5 minutos.
+function demoTech(now) {
+  const p = (now % 300000) / 300000;
+  return { lat: 20.58805 + 0.022 * (1 - p), lon: -100.38986 + 0.026 * (1 - p) };
+}
+
+function demoService(stage, now = Date.now()) {
   const s = {
     folio: 'MTGO-DEMO',
     tipo: 'Reparación',
@@ -152,15 +167,26 @@ function demoService(stage) {
     creado: '2026-11-05T23:42:00.000Z',
     programada: '',
     camino: '',
+    estimada: '',
+    tlat: null,
+    tlon: null,
+    tupd: '',
     tecnico: '',
     cierre: '',
     comentario: '',
     fotos: []
   };
   if (stage >= 1) s.programada = '2026-11-06T22:00:00.000Z';
+  if (stage >= 1 && stage <= 3) s.estimada = new Date(Date.now() + 45 * 60000).toISOString();
   if (stage >= 2) {
     s.camino = '2026-11-06T21:35:00.000Z';
     s.tecnico = 'Luis';
+  }
+  if (stage === 2) {
+    const d = demoTech(now);
+    s.tlat = d.lat;
+    s.tlon = d.lon;
+    s.tupd = new Date(now).toISOString();
   }
   if (stage === 4) {
     s.cierre = '2026-11-06';
@@ -211,6 +237,10 @@ async function fetchService(token) {
         creado: rec.createdTime || '',
         programada: f[F.programada] || '',
         camino: f[F.camino] || '',
+        estimada: f[F.estimada] || '',
+        tlat: num(f[F.latT]),
+        tlon: num(f[F.lonT]),
+        tupd: f[F.ubicAct] || '',
         tecnico: tec && typeof tec === 'object' ? tec.name || '' : tec || '',
         cierre: f[F.cierre] || '',
         comentario: f[F.comentario] || '',
@@ -306,6 +336,22 @@ h2{margin:0 0 12px;font-size:13px;font-weight:700;color:#D5DEE5}
 .btn2{display:inline-flex;align-self:flex-start;align-items:center;justify-content:center;height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #2F4455;font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.more .chev{transition:none}}
 .coment{margin:0;font-size:15px;color:#E6EDF2;white-space:pre-line}
+.mapbox{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--card)}
+#map{height:230px;width:100%;background:#16262F;font-family:inherit}
+.leaflet-container{background:#16262F;font-family:inherit}
+.leaflet-control-attribution{background:rgba(15,27,36,.85)!important;color:#A9B8C3!important;font-size:10px}
+.leaflet-control-attribution a{color:#F5A623!important}
+.pinicon{background:none;border:0}
+.mapbox{position:relative}
+.distchip{position:absolute;top:10px;left:10px;z-index:1000;display:none;background:rgba(15,27,36,.92);border:1px solid var(--orange);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#fff;max-width:calc(100% - 70px)}
+.distchip small{font-weight:500;color:var(--muted);margin-left:4px}
+.tech{width:40px;height:40px;border-radius:50%;background:#F5A623;border:3px solid #0F1B24;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.leaflet-bar{border:1px solid #2A3E4D!important;box-shadow:none!important}
+.leaflet-bar a,.leaflet-bar a:hover{background:#16262F!important;color:#fff!important;border-bottom:1px solid #2A3E4D!important}
+.eta{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px;font-weight:600;color:#E6EDF2}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.act{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0;text-align:center;font-size:12.5px;font-weight:600;color:#D5DEE5;text-decoration:none}
+.act span{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.35)}
 .note{margin:0;font-size:13px;color:var(--muted)}
 .fotos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .fotos a{display:block;border-radius:14px;overflow:hidden;background:#0F1B24;aspect-ratio:4/3}
@@ -330,7 +376,7 @@ h2{margin:0 0 12px;font-size:13px;font-weight:700;color:#D5DEE5}
 const CHECK = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
 const CHECK_DARK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0F1B24" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
 
-function page({ title, desc, image, body, canonical, refresh }) {
+function page({ title, desc, image, body, canonical, refresh, head }) {
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -350,6 +396,7 @@ ${canonical ? `<meta property="og:url" content="${esc(canonical)}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>${CSS}</style>
+${head || ''}
 </head>
 <body>
 ${body}
@@ -413,7 +460,9 @@ function stepper(cur) {
 // Estatus actual + despegable con el detalle de cada etapa
 function statusCard(s, cur) {
   const detail = stageDetail(cur, s);
+  const eta = etaText(s, cur, new Date());
   return `<section class="card">
+${eta ? `<p class="eta"><span class="pulse"></span>${esc(eta)}</p>` : ''}
 <h2>Estatus del servicio</h2>
 ${stepper(cur)}
 <div class="nowbox"><b>${esc(LABELS[cur])}</b><span>${esc(NOTES[cur])}</span>${detail ? `<small>${esc(detail)}</small>` : ''}</div>
@@ -444,6 +493,108 @@ function locationCard(s) {
 <div class="locrow">${PIN(22, 1.9)}<div><div class="k">Ubicación</div>${s.lugar ? `<div class="v">${esc(s.lugar)}</div>` : ''}${s.direccion ? `<div class="addr">${esc(s.direccion)}</div>` : ''}${c ? `<div class="coords">${c.lat.toFixed(5)}, ${c.lon.toFixed(5)}</div>` : ''}</div></div>
 <a class="btn2" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Ver en mapa</a>
 </section>`;
+}
+
+const STALE_SEC = 600; // la posición del técnico caduca a los 10 min
+
+// Posición vigente del técnico (solo mientras va en camino)
+function techPos(s, cur, now) {
+  if (cur !== 2 || s.tlat == null || s.tlon == null) return null;
+  if (!(Math.abs(s.tlat) <= 90 && Math.abs(s.tlon) <= 180)) return null;
+  const t = parse(s.tupd);
+  if (!t) return null;
+  const age = (now.getTime() - t.getTime()) / 1000;
+  if (age > STALE_SEC || age < -120) return null;
+  return { lat: s.tlat, lon: s.tlon, age: Math.max(0, Math.round(age)) };
+}
+
+function distKm(a, b) {
+  const R = 6371;
+  const r = (x) => (x * Math.PI) / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lon - a.lon) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+const LEAFLET_CSS = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">';
+const LEAFLET_JS = '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>';
+
+// Mapa con el pin del establecimiento y, si va en camino, el técnico con su distancia (en vivo)
+function mapCard(s, cur, token, now) {
+  const c = parseCoords(s.coords);
+  if (!c) return { html: '', head: '', live: false };
+  const pos = techPos(s, cur, now);
+  const pin = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48"><path d="M19 46S4 31 4 18a15 15 0 0 1 30 0c0 13-15 28-15 28z" fill="#F5A623" stroke="#0F1B24" stroke-width="3"/><circle cx="19" cy="18" r="6" fill="#0F1B24"/></svg>';
+  const safe = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
+  const script = `<script>(function(){
+window.addEventListener('load',function(){
+if(!window.L)return;
+var DEST=[${c.lat},${c.lon}],TOKEN=${safe(token)},STAGE=${cur},tech=null,follow=true;
+var m=L.map('map',{scrollWheelZoom:false,dragging:!L.Browser.mobile,tap:false,attributionControl:false,zoomControl:false}).setView(DEST,16);
+L.control.zoom({position:'topright'}).addTo(m);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(m);
+L.control.attribution({prefix:false}).addTo(m);
+L.marker(DEST,{icon:L.divIcon({className:'pinicon',html:${safe(pin)},iconSize:[38,48],iconAnchor:[19,46]}),keyboard:false}).addTo(m);
+var chip=document.getElementById('dist');
+m.getContainer().addEventListener('pointerdown',function(){follow=false;});
+function rad(x){return x*Math.PI/180;}
+function km(a,b){var h=Math.pow(Math.sin(rad(b[0]-a[0])/2),2)+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.pow(Math.sin(rad(b[1]-a[1])/2),2);return 12742*Math.asin(Math.sqrt(h));}
+function fmt(k){if(k<0.05)return 'Llegando';if(k<0.95)return 'A '+(Math.round(k*100)*10)+' m';return 'A '+k.toFixed(1)+' km';}
+function ago(s){if(s<15)return 'ahora';if(s<60)return 'hace '+s+' s';return 'hace '+Math.round(s/60)+' min';}
+function apply(p){
+ if(!p){if(tech){m.removeLayer(tech);tech=null;}chip.style.display='none';return;}
+ var ll=[p.lat,p.lon];
+ if(!tech){tech=L.marker(ll,{icon:L.divIcon({className:'pinicon',html:'<div class="tech" aria-hidden="true">&#128666;</div>',iconSize:[40,40],iconAnchor:[20,20]}),keyboard:false,zIndexOffset:500}).addTo(m);}else{tech.setLatLng(ll);}
+ chip.innerHTML=fmt(km(ll,DEST))+'<small>'+ago(p.age||0)+'</small>';chip.style.display='block';
+ if(follow)m.fitBounds([ll,DEST],{padding:[56,56],maxZoom:17,animate:false});
+}
+apply(${safe(pos)});
+function tick(){fetch('/p/'+encodeURIComponent(TOKEN),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(d){if(!d)return;if(d.stage!==STAGE){location.reload();return;}apply(d.pos);}).catch(function(){});}
+setInterval(tick,STAGE===2?10000:30000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')tick();});
+});
+})();</script>`;
+  return {
+    html: `<div class="mapbox"><div id="map" role="img" aria-label="Mapa con la ubicación de ${esc(s.lugar || 'el establecimiento')}"></div><div class="distchip" id="dist" aria-live="polite"></div></div>${script}`,
+    head: `${LEAFLET_CSS}\n${LEAFLET_JS}`,
+    live: true
+  };
+}
+
+// "Llega hoy antes de las 11:45 hs" (solo mientras el servicio no termina)
+function etaText(s, cur, now) {
+  if (cur >= 4 || !s.estimada) return '';
+  const d = parse(s.estimada);
+  if (!d) return '';
+  const day = (x, z) => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: z }).format(x);
+  const withTime = hasTime(s.estimada);
+  const z = withTime ? TZ : 'UTC';
+  const today = day(now, TZ);
+  const tomorrow = day(new Date(now.getTime() + 86400000), TZ);
+  const target = day(d, z);
+  if (target < today) return '';
+  if (withTime && d.getTime() < now.getTime()) return '';
+  let when;
+  if (target === today) when = 'hoy';
+  else if (target === tomorrow) when = 'mañana';
+  else when = 'el ' + new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', timeZone: z }).format(d);
+  if (!withTime) return `Llega ${when}`;
+  const hhmm = new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ }).format(d);
+  return `Llega ${when} antes de las ${hhmm} hs`;
+}
+
+const ICON = (path) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+const ICON_SHARE = ICON('<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/>');
+const ICON_CHAT = ICON('<path d="M20 12a8 8 0 0 1-11.8 7L4 20l1.1-4A8 8 0 1 1 20 12z"/>');
+const ICON_PHONE = ICON('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>');
+
+function actionsRow(s, pageUrl) {
+  const share = encodeURIComponent(`Sigue el servicio ${s.folio || ''} de MantenGO: ${pageUrl}`.replace(/\s+/g, ' ').trim());
+  const ask = encodeURIComponent(`Hola, tengo una pregunta sobre el servicio ${s.folio}.`);
+  return `<nav class="card actions" aria-label="Acciones">
+<a class="act" href="https://wa.me/?text=${share}" target="_blank" rel="noopener noreferrer"><span>${ICON_SHARE}</span>Compartir</a>
+<a class="act" href="https://wa.me/${WHATSAPP}?text=${ask}" target="_blank" rel="noopener noreferrer"><span>${ICON_CHAT}</span>WhatsApp</a>
+<a class="act" href="tel:+${WHATSAPP}"><span>${ICON_PHONE}</span>Llamar</a>
+</nav>`;
 }
 
 function renderService(s, token, base, isDemo) {
@@ -478,6 +629,7 @@ ${s.fotos
     cierre = `<section class="card"><p class="note">Las fotos de evidencia y el comentario de cierre aparecerán aquí cuando termine el servicio. Esta página se actualiza sola.</p></section>`;
   }
 
+  const map = mapCard(s, cur, token, new Date());
   const body = `<main class="wrap">
 <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
 <div>
@@ -486,7 +638,9 @@ ${s.folio ? `<p class="folio"><span class="k">Folio</span><b>${esc(s.folio)}</b>
 <h1>${esc(titulo)}</h1>
 ${s.lugar ? `<p class="place">${PIN(20, 2)}<span>${esc(s.lugar)}</span></p>` : ''}
 </div>
+${map.html}
 ${statusCard(s, cur)}
+${actionsRow(s, base ? `${base}/s/${token}` : '')}
 ${locationCard(s)}
 <section class="card"><div class="grid">${meta.join('')}</div></section>
 ${cierre}
@@ -505,7 +659,8 @@ ${isDemo ? '<div class="foot">Vista de ejemplo con datos ficticios.</div>' : ''}
     desc: [titulo, s.lugar, terminado ? fmtDate(s.cierre) : s.programada ? fmtDT(s.programada) : ''].filter(Boolean).join(' · '),
     image: base ? ogImage : '',
     canonical: base ? `${base}/s/${token}` : '',
-    refresh: terminado || isDemo ? 0 : 60,
+    refresh: terminado || isDemo || map.live ? 0 : 60,
+    head: map.head + (map.live && !terminado && !isDemo ? '\n<noscript><meta http-equiv="refresh" content="60"></noscript>' : ''),
     body
   });
 }
@@ -527,7 +682,7 @@ ${footer()}
 function route(event) {
   const sources = [event.rawUrl, event.path].filter(Boolean).map(String);
   for (const s of sources) {
-    const m = s.match(/\/(s|i)\/([^/?#]+)(?:\/(\d+))?/);
+    const m = s.match(/\/(s|i|p)\/([^/?#]+)(?:\/(\d+))?/);
     if (m) {
       let tok = m[2];
       try {
@@ -565,6 +720,27 @@ exports.handler = async (event) => {
     }
   }
 
+  // Posición en vivo para el mapa (JSON)
+  if (r.kind === 'p') {
+    const JSON_H = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer' };
+    const payload = (s) => {
+      const stage = stageIndex(s);
+      return { stage, pos: techPos(s, stage, new Date()) };
+    };
+    if (demoOn && Object.prototype.hasOwnProperty.call(DEMOS, token)) {
+      return { statusCode: 200, headers: JSON_H, body: JSON.stringify(payload(demoService(DEMOS[token]))) };
+    }
+    if (!TOKEN_RE.test(token)) return { statusCode: 404, headers: JSON_H, body: '{}' };
+    try {
+      const s = await fetchService(token);
+      if (!s) return { statusCode: 404, headers: JSON_H, body: '{}' };
+      return { statusCode: 200, headers: JSON_H, body: JSON.stringify(payload(s)) };
+    } catch (e) {
+      console.error('posicion:', e.message);
+      return { statusCode: 502, headers: JSON_H, body: '{}' };
+    }
+  }
+
   if (demoOn && Object.prototype.hasOwnProperty.call(DEMOS, token)) {
     return { statusCode: 200, headers: BASE_HEADERS, body: renderService(demoService(DEMOS[token]), token, base, true) };
   }
@@ -590,4 +766,4 @@ exports.handler = async (event) => {
   }
 };
 
-exports._test = { TOKEN_RE, stageIndex, renderService, demoService, parseCoords };
+exports._test = { TOKEN_RE, stageIndex, renderService, demoService, parseCoords, etaText, techPos, distKm, mapCard };
