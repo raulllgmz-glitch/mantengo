@@ -118,7 +118,8 @@ const BASE_HEADERS = {
   'Content-Type': 'text/html; charset=utf-8',
   'Cache-Control': 'no-store',
   'X-Robots-Tag': 'noindex, nofollow',
-  'Referrer-Policy': 'no-referrer',
+  // Solo se envía el dominio (nunca la ruta con el token). OpenStreetMap exige saber de qué sitio viene la petición.
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
   'X-Content-Type-Options': 'nosniff'
 };
 
@@ -342,6 +343,7 @@ h2{margin:0 0 12px;font-size:13px;font-weight:700;color:#D5DEE5}
 .leaflet-control-attribution{background:rgba(15,27,36,.85)!important;color:#A9B8C3!important;font-size:10px}
 .leaflet-control-attribution a{color:#F5A623!important}
 .pinicon{background:none;border:0}
+.leaflet-tile-pane{filter:invert(100%) hue-rotate(180deg) brightness(92%) contrast(88%) saturate(70%)}
 .mapbox{position:relative}
 .distchip{position:absolute;top:10px;left:10px;z-index:1000;display:none;background:rgba(15,27,36,.92);border:1px solid var(--orange);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#fff;max-width:calc(100% - 70px)}
 .distchip small{font-weight:500;color:var(--muted);margin-left:4px}
@@ -531,7 +533,7 @@ if(!window.L)return;
 var DEST=[${c.lat},${c.lon}],TOKEN=${safe(token)},STAGE=${cur},tech=null,follow=true;
 var m=L.map('map',{scrollWheelZoom:false,dragging:!L.Browser.mobile,tap:false,attributionControl:false,zoomControl:false}).setView(DEST,16);
 L.control.zoom({position:'topright'}).addTo(m);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(m);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(m);
 L.control.attribution({prefix:false}).addTo(m);
 L.marker(DEST,{icon:L.divIcon({className:'pinicon',html:${safe(pin)},iconSize:[38,48],iconAnchor:[19,46]}),keyboard:false}).addTo(m);
 var chip=document.getElementById('dist');

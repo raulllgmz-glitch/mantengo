@@ -11,7 +11,7 @@ Glide (botón Compartir) ──► link /s/<token> ──► Netlify Function �
 - La función pide **solo** estos campos: Folio, Tipo de Servicio, Solicitud Falla, Establecimiento, Dirección, Coordenadas, Serie, Etapa, Fecha programada, Hora en camino, Técnico, Fecha de Cierre, Comentario Cierre y Evidencias. Los montos y las facturas no se piden.
 - La página no se guarda en caché: cada visita lee Airtable y trae URLs de fotos frescas (las de Airtable caducan en pocas horas).
 - La página muestra el nombre del establecimiento bajo el título, una barra horizontal con las 5 etapas (la actual resaltada) y un despegable «Ver detalle del seguimiento» con la línea de tiempo completa.
-- Si `Coordenadas` es válida, arriba aparece un mapa con el pin del establecimiento (Leaflet con mapa de OpenStreetMap/CARTO; no necesita llaves). Sin coordenadas, no hay mapa.
+- Si `Coordenadas` es válida, arriba aparece un mapa con el pin del establecimiento (Leaflet con mapa de OpenStreetMap, en tono oscuro; no necesita llaves. Para mucho tráfico conviene un proveedor con llave, como MapTiler, Stadia o Mapbox: se cambia la URL del mapa en `mapCard`). Sin coordenadas, no hay mapa.
 - Debajo del estatus hay tres botones: Compartir (WhatsApp con el link), WhatsApp con MantenGO y Llamar.
 - La tarjeta «Ubicación» muestra dirección, coordenadas y un botón «Ver en mapa» (Google Maps).
 - Mientras el servicio no esté terminado, la página se recarga sola cada 60 segundos.
