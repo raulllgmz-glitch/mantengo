@@ -158,3 +158,8 @@ Cliente ──► /s/<token> ──► mapa con camión y distancia, se actualiz
 - La página debe estar abierta y con la pantalla encendida. En iPhone y en muchos Android el navegador deja de enviar si se bloquea la pantalla o se cambia de app. Para eso se pide mantener la pantalla encendida (`Wake Lock`); una app propia lo resolvería del todo.
 - La distancia es en línea recta, no por calles. Para minutos de llegada por ruta hace falta un servicio de rutas con llave.
 - No se guarda historial: solo la última posición.
+
+## 8. Ficha del punto de venta (liga del técnico)
+La liga `/t/<token>` muestra, tras ingresar la clave: fachada, dirección, contacto, teléfono, falla/serie y botones Cómo llegar (Google Maps), Waze, Llamar, WhatsApp y Compartir ubicación.
+Campos de Airtable usados: Dirección, Coordenadas ("lat, lon"), Contacto, Telefono, Solicitud Falla, Serie, Tipo de Servicio y, opcional, **Fachada** (adjuntos). Nunca se envían montos ni facturas.
+El marcador del técnico en el mapa es `public/assets/camion.png`.

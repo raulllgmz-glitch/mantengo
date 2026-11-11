@@ -20,8 +20,18 @@ const F = {
   cierre: 'Fecha de Cierre',
   lat: 'Lat técnico',
   lon: 'Lon técnico',
-  upd: 'Ubicación actualizada'
+  upd: 'Ubicación actualizada',
+  // Ficha del punto de venta (solo se devuelve con la clave del equipo). Nunca montos ni facturas.
+  dir: 'Dirección',
+  coords: 'Coordenadas',
+  contacto: 'Contacto',
+  tel: 'Telefono',
+  falla: 'Solicitud Falla',
+  serie: 'Serie',
+  tipo: 'Tipo de Servicio',
+  fachada: 'Fachada'
 };
+const PDV = [F.dir, F.coords, F.contacto, F.tel, F.falla, F.serie, F.tipo, F.fachada];
 
 const HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -47,8 +57,8 @@ function sameKey(a, b) {
 }
 
 // Busca el servicio por su token. Los campos que aún no existen se quitan y se reintenta.
-async function findRecord(token, apiKey) {
-  let fields = [F.lugar, F.etapa, F.camino, F.cierre];
+async function findRecord(token, apiKey, full) {
+  let fields = [F.lugar, F.etapa, F.camino, F.cierre, ...(full ? PDV : [])];
   for (let attempt = 0; attempt < 8; attempt++) {
     const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`);
     // El token ya pasó TOKEN_RE: solo letras, números, - y _.
@@ -98,6 +108,35 @@ async function errorType(res) {
   }
 }
 
+function pdvInfo(f) {
+  const t = (v) => (v == null ? '' : String(v).trim().slice(0, 300));
+  let lat = null;
+  let lon = null;
+  const m = String(f[F.coords] || '').match(/(-?\d{1,3}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)/);
+  if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180) {
+    lat = +m[1];
+    lon = +m[2];
+  }
+  const att = Array.isArray(f[F.fachada]) ? f[F.fachada][0] : null;
+  let foto = '';
+  if (att) {
+    const big = att.thumbnails && att.thumbnails.large && att.thumbnails.large.url;
+    foto = big || att.url || '';
+    if (!/^https:\/\//.test(foto)) foto = '';
+  }
+  return {
+    direccion: t(f[F.dir]),
+    lat,
+    lon,
+    contacto: t(f[F.contacto]),
+    telefono: t(f[F.tel]),
+    falla: t(f[F.falla]),
+    serie: t(f[F.serie]),
+    tipo: t(f[F.tipo]),
+    foto
+  };
+}
+
 const round5 = (n) => Math.round(n * 1e5) / 1e5;
 
 exports.handler = async (event) => {
@@ -140,7 +179,7 @@ exports.handler = async (event) => {
   if (!['info', 'update', 'stop'].includes(action)) return reply(400, { error: 'accion' });
 
   try {
-    const rec = await findRecord(token, apiKey);
+    const rec = await findRecord(token, apiKey, action === 'info');
     if (!rec) return reply(404, { error: 'servicio' });
     const f = rec.fields || {};
     const etapaRaw = f[F.etapa];
@@ -149,7 +188,7 @@ exports.handler = async (event) => {
     const info = { folio: f[F.folio] || '', lugar: f[F.lugar] || '', etapa };
 
     if (f[F.cierre] || e === 'terminado' || e === 'cerrado') return reply(409, { error: 'terminado', ...info });
-    if (action === 'info') return reply(200, { ok: true, ...info });
+    if (action === 'info') return reply(200, { ok: true, ...info, pdv: pdvInfo(f) });
 
     if (action === 'stop') {
       const r = await patchRecord(rec.id, { [F.lat]: null, [F.lon]: null, [F.upd]: null }, apiKey);

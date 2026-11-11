@@ -28,6 +28,7 @@ const F = {
   programada2: 'Fecha Programada', // así se llama en la tabla de MantenGO; se acepta cualquiera de las dos
   camino: 'Hora en camino',
   estimada: 'Llegada estimada',
+  estimada2: 'Llegada Estimada',
   latT: 'Lat técnico',
   lonT: 'Lon técnico',
   ubicAct: 'Ubicación actualizada',
@@ -37,7 +38,7 @@ const F = {
   fotos: 'Evidencias'
 };
 // Campos opcionales: si alguno todavía no existe en Airtable, la página sigue funcionando sin él.
-const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.programada2, F.camino, F.estimada, F.latT, F.lonT, F.ubicAct, F.tecnico, F.cierre, F.comentario, F.fotos];
+const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.programada2, F.camino, F.estimada, F.estimada2, F.latT, F.lonT, F.ubicAct, F.tecnico, F.cierre, F.comentario, F.fotos];
 
 const WHATSAPP = '524424501585';
 const TZ = 'America/Mexico_City';
@@ -239,7 +240,7 @@ async function fetchService(token) {
         creado: rec.createdTime || '',
         programada: f[F.programada] || f[F.programada2] || '',
         camino: f[F.camino] || '',
-        estimada: f[F.estimada] || '',
+        estimada: f[F.estimada] || f[F.estimada2] || '',
         tlat: num(f[F.latT]),
         tlon: num(f[F.lonT]),
         tupd: f[F.ubicAct] || '',
@@ -348,7 +349,7 @@ h2{margin:0 0 12px;font-size:13px;font-weight:700;color:#D5DEE5}
 .mapbox{position:relative}
 .distchip{position:absolute;top:10px;left:10px;z-index:1000;display:none;background:rgba(15,27,36,.92);border:1px solid var(--orange);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#fff;max-width:calc(100% - 70px)}
 .distchip small{font-weight:500;color:var(--muted);margin-left:4px}
-.tech{width:40px;height:40px;border-radius:50%;background:#F5A623;border:3px solid #0F1B24;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.tech{width:76px;height:60px;background:url(/assets/camion.png) center/contain no-repeat;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}
 .leaflet-bar{border:1px solid #2A3E4D!important;box-shadow:none!important}
 .leaflet-bar a,.leaflet-bar a:hover{background:#16262F!important;color:#fff!important;border-bottom:1px solid #2A3E4D!important}
 .eta{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px;font-weight:600;color:#E6EDF2}
@@ -546,7 +547,7 @@ function ago(s){if(s<15)return 'ahora';if(s<60)return 'hace '+s+' s';return 'hac
 function apply(p){
  if(!p){if(tech){m.removeLayer(tech);tech=null;}chip.style.display='none';return;}
  var ll=[p.lat,p.lon];
- if(!tech){tech=L.marker(ll,{icon:L.divIcon({className:'pinicon',html:'<div class="tech" aria-hidden="true">&#128666;</div>',iconSize:[40,40],iconAnchor:[20,20]}),keyboard:false,zIndexOffset:500}).addTo(m);}else{tech.setLatLng(ll);}
+ if(!tech){tech=L.marker(ll,{icon:L.divIcon({className:'pinicon',html:'<div class="tech" aria-hidden="true"></div>',iconSize:[76,60],iconAnchor:[38,34]}),keyboard:false,zIndexOffset:500}).addTo(m);}else{tech.setLatLng(ll);}
  chip.innerHTML=fmt(km(ll,DEST))+'<small>'+ago(p.age||0)+'</small>';chip.style.display='block';
  if(follow)m.fitBounds([ll,DEST],{padding:[56,56],maxZoom:17,animate:false});
 }

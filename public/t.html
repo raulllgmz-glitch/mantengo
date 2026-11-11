@@ -35,6 +35,11 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
 .small{font-size:13px;color:var(--muted);margin-top:6px}
 .err{color:var(--bad);font-weight:600}
 .link{background:none;border:0;color:var(--orange);font:inherit;font-size:13.5px;text-decoration:underline;cursor:pointer;padding:6px 0}
+#pdv .row{margin-top:12px}
+#pdv img{width:100%;max-height:220px;object-fit:cover;border-radius:12px;display:block;margin-bottom:12px;background:var(--bg)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.btn.sec{min-height:48px;font-size:15px;background:transparent;color:#fff;border:1.5px solid #3A5062;text-decoration:none;text-align:center;padding:0 10px}
+.btn.pri{text-decoration:none}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){.dot.live{animation:none}}
 </style>
@@ -62,6 +67,23 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
     <div class="v" id="folio">—</div>
     <div class="small" id="lugar"></div>
     <button class="link" id="chgkey" type="button">Cambiar clave</button>
+  </section>
+
+  <section class="card" id="pdv" hidden>
+    <img id="foto" alt="Fachada del establecimiento" hidden>
+    <div class="k">Punto de venta</div>
+    <div class="v" id="p_lugar"></div>
+    <div class="row" id="r_dir"><div class="k">Dirección</div><div id="p_dir"></div></div>
+    <div class="row" id="r_con"><div class="k">Contacto</div><div id="p_con"></div></div>
+    <div class="row" id="r_fal"><div class="k">Servicio</div><div id="p_fal"></div></div>
+    <a class="btn pri" id="b_nav" style="margin-top:16px" target="_blank" rel="noopener" hidden>Cómo llegar</a>
+    <div class="grid">
+      <a class="btn sec" id="b_waze" target="_blank" rel="noopener" hidden>Waze</a>
+      <a class="btn sec" id="b_tel" hidden>Llamar</a>
+      <a class="btn sec" id="b_wa" target="_blank" rel="noopener" hidden>WhatsApp</a>
+      <button class="btn sec" id="b_share" type="button">Compartir ubicación</button>
+    </div>
+    <p class="hint" id="shmsg" hidden></p>
   </section>
 
   <section class="card" id="ctl" hidden>
@@ -106,7 +128,7 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
 
   function needKey(msg) {
     stop(true);
-    show('svc', false); show('ctl', false); show('keybox', true);
+    show('svc', false); show('pdv', false); show('ctl', false); show('keybox', true);
     var e = $('keyerr');
     if (msg) { e.textContent = msg; e.className = 'hint err'; e.hidden = false; } else { e.hidden = true; }
     $('key').value = '';
@@ -122,14 +144,76 @@ input:focus{outline:2px solid var(--orange);outline-offset:1px}
       show('keybox', false); show('svc', true); show('ctl', true);
       $('folio').textContent = d.folio || '—';
       $('lugar').textContent = d.lugar || '';
+      renderPdv(d);
       if (d.error === 'terminado') {
         setState('Servicio terminado', '', 'Ya no se comparte la ubicación.');
         $('go').disabled = true;
       } else {
         $('go').disabled = false;
         setState('Listo para salir', '', '');
+        preLocate();
       }
     }).catch(function () { needKey('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); });
+  }
+
+  var dest = null;
+  function setRow(id, txt) { $(id).hidden = !txt; var el = $(id.replace('r_', 'p_')); if (el) el.textContent = txt || ''; }
+  function renderPdv(d) {
+    var p = d.pdv; if (!p) return;
+    window.__pdv = p;
+    show('pdv', true);
+    $('p_lugar').textContent = d.lugar || '';
+    setRow('r_dir', p.direccion);
+    setRow('r_con', p.contacto);
+    setRow('r_fal', [p.tipo, p.falla, p.serie ? 'Serie ' + p.serie : ''].filter(Boolean).join(' · '));
+    var img = $('foto');
+    if (p.foto) { img.src = p.foto; img.hidden = false; img.onerror = function () { img.hidden = true; }; } else img.hidden = true;
+    var q = (p.lat !== null && p.lon !== null) ? p.lat + ',' + p.lon : [d.lugar, p.direccion].filter(Boolean).join(' ');
+    dest = { q: q, ok: !!q };
+    var nav = $('b_nav'), wz = $('b_waze');
+    if (q) {
+      nav.href = 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent(q); nav.hidden = false;
+      wz.href = (p.lat !== null ? 'https://waze.com/ul?ll=' + p.lat + ',' + p.lon + '&navigate=yes' : 'https://waze.com/ul?q=' + encodeURIComponent(q) + '&navigate=yes'); wz.hidden = false;
+    }
+    var tel = (p.telefono || '').replace(/[^\d+]/g, '');
+    $('b_tel').hidden = tel.length < 8;
+    if (tel.length >= 8) {
+      $('b_tel').href = 'tel:' + tel;
+      var wa = tel.replace(/^\+/, ''); if (wa.length === 10) wa = '52' + wa;
+      $('b_wa').href = 'https://wa.me/' + wa; $('b_wa').hidden = false;
+    }
+  }
+  function shareText() {
+    var lugar = $('p_lugar').textContent;
+    var url = dest && dest.ok ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dest.q) : '';
+    return { text: 'MantenGO · ' + $('folio').textContent + (lugar ? ' · ' + lugar : '') + (url ? '\n' + url : ''), url: url };
+  }
+  $('b_share').addEventListener('click', function () {
+    var t = shareText(), m = $('shmsg');
+    function fallback() { window.open('https://wa.me/?text=' + encodeURIComponent(t.text), '_blank', 'noopener'); }
+    if (navigator.share) { navigator.share({ text: t.text }).catch(function () {}); } else fallback();
+    m.hidden = true;
+  });
+
+  // Al abrir la liga se pide el permiso de ubicación y se toma la posición (no se envía hasta "Iniciar viaje").
+  var pre = false;
+  function km(a, b, c, d) {
+    var R = 6371, t = Math.PI / 180, x = (c - a) * t, y = (d - b) * t;
+    var h = Math.sin(x / 2) * Math.sin(x / 2) + Math.cos(a * t) * Math.cos(c * t) * Math.sin(y / 2) * Math.sin(y / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function preLocate() {
+    if (pre || running || !navigator.geolocation) return;
+    pre = true;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      if (running) return;
+      var c = pos.coords, msg = 'Ubicación detectada · precisión ' + Math.round(c.accuracy || 0) + ' m';
+      if (window.__pdv && window.__pdv.lat !== null) msg += ' · a ' + km(c.latitude, c.longitude, window.__pdv.lat, window.__pdv.lon).toFixed(1) + ' km del punto de venta';
+      setState('Listo para salir', '', msg);
+    }, function (err) {
+      if (running) return;
+      if (err && err.code === 1) setState('Listo para salir', 'err', 'Activa el permiso de ubicación para este sitio; sin él no se puede compartir tu viaje.');
+    }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
   }
 
   function hhmmss(d) { return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); }
