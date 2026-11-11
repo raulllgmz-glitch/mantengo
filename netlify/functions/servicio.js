@@ -25,6 +25,7 @@ const F = {
   serie: 'Serie',
   etapa: 'Etapa',
   programada: 'Fecha programada',
+  programada2: 'Fecha Programada', // así se llama en la tabla de MantenGO; se acepta cualquiera de las dos
   camino: 'Hora en camino',
   estimada: 'Llegada estimada',
   latT: 'Lat técnico',
@@ -36,7 +37,7 @@ const F = {
   fotos: 'Evidencias'
 };
 // Campos opcionales: si alguno todavía no existe en Airtable, la página sigue funcionando sin él.
-const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.camino, F.estimada, F.latT, F.lonT, F.ubicAct, F.tecnico, F.cierre, F.comentario, F.fotos];
+const OPTIONAL = [F.tipo, F.falla, F.lugar, F.direccion, F.coords, F.serie, F.etapa, F.programada, F.programada2, F.camino, F.estimada, F.latT, F.lonT, F.ubicAct, F.tecnico, F.cierre, F.comentario, F.fotos];
 
 const WHATSAPP = '524424501585';
 const TZ = 'America/Mexico_City';
@@ -236,7 +237,7 @@ async function fetchService(token) {
         serie: f[F.serie] || '',
         etapa: etapa && typeof etapa === 'object' ? etapa.name : etapa || '',
         creado: rec.createdTime || '',
-        programada: f[F.programada] || '',
+        programada: f[F.programada] || f[F.programada2] || '',
         camino: f[F.camino] || '',
         estimada: f[F.estimada] || '',
         tlat: num(f[F.latT]),

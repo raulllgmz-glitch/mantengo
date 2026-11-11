@@ -172,13 +172,20 @@ exports.handler = async (event) => {
     if (e !== 'en camino') withStage[F.etapa] = 'En camino';
     if (!f[F.camino]) withStage[F.camino] = new Date().toISOString();
 
-    let r = await patchRecord(rec.id, withStage, apiKey);
-    let sinEtapa = false;
-    if (!r.ok && r.status === 422 && Object.keys(withStage).length > Object.keys(base).length) {
-      // Si falta la opción "En camino" o el campo de hora, se guarda solo la posición.
-      r = await patchRecord(rec.id, base, apiKey);
-      sinEtapa = r.ok;
+    // Se intenta lo más completo y, si Airtable rechaza algún campo (422), se va quitando lo opcional:
+    // 1) posición + etapa + hora, 2) posición + etapa, 3) solo posición.
+    const attempts = [withStage];
+    if (F.camino in withStage && F.etapa in withStage) attempts.push({ ...base, [F.etapa]: withStage[F.etapa] });
+    if (Object.keys(withStage).length > Object.keys(base).length) attempts.push(base);
+    let r;
+    let used = 0;
+    for (let i = 0; i < attempts.length; i++) {
+      used = i;
+      r = await patchRecord(rec.id, attempts[i], apiKey);
+      if (r.ok || r.status !== 422) break;
     }
+    // sinEtapa: debía cambiar a "En camino" y no se pudo.
+    const sinEtapa = r.ok && e !== 'en camino' && !(F.etapa in attempts[used]);
     if (!r.ok) return fail(r);
     return reply(200, { ok: true, ...info, etapa: sinEtapa ? etapa : 'En camino', sinEtapa });
   } catch (err) {
