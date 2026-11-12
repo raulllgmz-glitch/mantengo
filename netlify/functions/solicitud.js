@@ -9,6 +9,7 @@
 // Necesita AIRTABLE_WRITE_TOKEN (o AIRTABLE_TOKEN si ya puede escribir).
 
 const crypto = require('crypto');
+const ACC = require('../lib/acceso');
 
 const AT_BASE = process.env.AIRTABLE_BASE_ID || 'appqjYUAGBRIh6RHX';
 const AT_TABLE = process.env.AIRTABLE_TABLE_ID || 'tbl77Z2y9GVqC30H0';
@@ -33,10 +34,12 @@ const S = {
   serie: 'Serie',
   fecha: 'Fecha Solicitada',
   fotos: 'Fotos solicitud',
-  evid: 'Evidencias'
+  evid: 'Evidencias',
+  quienNombre: 'Contacto User',
+  quienTel: 'Tel User'
 };
 // Si alguno de estos no existe en Airtable, se omite y se sigue (el resto es obligatorio).
-const OPCIONALES = [S.tipo, S.dir, S.coords, S.contacto, S.tel, S.serie, S.fecha];
+const OPCIONALES = [S.quienNombre, S.quienTel, S.tipo, S.dir, S.coords, S.contacto, S.tel, S.serie, S.fecha];
 
 const TIPOS = [
   'Instalación',
@@ -210,13 +213,23 @@ exports.handler = async (event) => {
   if (!['info', 'crear', 'foto'].includes(action)) return reply(400, { error: 'accion' });
   if (action !== 'foto' && String(event.body || '').length > 6000) return reply(413, { error: 'tamano' });
   const code = String(b.code || '');
-  if (!CODE_RE.test(code)) {
+  const usaSesion = !!b.sesion;
+  if (!usaSesion && (process.env.ALLOW_CODE_LINKS === 'false' || !CODE_RE.test(code))) {
     await wait(400);
     return reply(404, { error: 'codigo' });
   }
 
   try {
-    const marca = await findMarca(code);
+    let marca;
+    let quien = null;
+    if (usaSesion) {
+      const r = await ACC.resolver(apiKey(), b.sesion, [M.nombre, M.servicios], AT_MARCA);
+      if (!r) return reply(401, { error: 'sesion' });
+      marca = r.marca;
+      quien = r.contacto;
+    } else {
+      marca = await findMarca(code);
+    }
     if (!marca) {
       await wait(400);
       return reply(404, { error: 'codigo' });
@@ -274,6 +287,10 @@ exports.handler = async (event) => {
       if (contacto) fields[S.contacto] = contacto;
       if (tel) fields[S.tel] = tel;
       if (serie) fields[S.serie] = serie;
+      if (quien) {
+        fields[S.quienNombre] = quien.nombre;
+        if (quien.tel) fields[S.quienTel] = quien.tel;
+      }
       const f = fechaSolicitada(b.fecha);
       if (f) fields[S.fecha] = `${f}T12:00:00.000Z`; // mediodía UTC = misma fecha en México
 

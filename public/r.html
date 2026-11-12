@@ -69,6 +69,7 @@ a.stop:hover .c{border-color:#3A5062}
     <p class="err" style="margin:0">Esta liga no es válida o ya no está activa.</p>
     <p style="margin:8px 0 0;font-size:13px">Pídele a MantenGO tu liga de ruta.</p>
   </section>
+  <div id="login" hidden></div>
   <section class="empty" id="load">Cargando…</section>
 
   <div id="main" hidden style="display:flex;flex-direction:column;gap:16px">
@@ -92,6 +93,7 @@ a.stop:hover .c{border-color:#3A5062}
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/acceso.js"></script>
 <script>
 (function () {
   'use strict';
@@ -102,7 +104,7 @@ a.stop:hover .c{border-color:#3A5062}
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
-  if (!/^[A-Za-z0-9_-]{16,64}$/.test(CODE)) { $('load').hidden = true; $('bad').hidden = false; return; }
+  var CON_CODIGO = /^[A-Za-z0-9_-]{16,64}$/.test(CODE);
 
   var BADGE = { 'Terminado': 'g', 'En camino': 'b', 'En proceso': 'b', 'Programado': '', 'Recibido': 'm' };
 
@@ -112,11 +114,19 @@ a.stop:hover .c{border-color:#3A5062}
     return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
+  function entrar() {
+    if (!$('login').hidden) return;
+    $('load').hidden = true; $('login').hidden = false;
+    MGA.login($('login'), function () { $('login').hidden = true; $('load').hidden = false; load(); });
+  }
+
   function load() {
-    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: CODE, d: D }), cache: 'no-store' })
+    if (!CON_CODIGO && !MGA.token()) return entrar();
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CON_CODIGO ? { code: CODE, d: D } : { sesion: MGA.token(), d: D }), cache: 'no-store' })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); })
       .then(function (d) {
         $('load').hidden = true;
+        if (d._status === 401) { MGA.clear(); $('main').hidden = true; return entrar(); }
         if (d._status === 404) { $('main').hidden = true; $('bad').hidden = false; return; }
         if (!d.ok) {
           if (!$('main').hidden) return; // se queda lo último que se vio

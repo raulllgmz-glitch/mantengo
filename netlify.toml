@@ -79,3 +79,34 @@
   [headers.values]
     Cache-Control = "no-cache"
     Service-Worker-Allowed = "/"
+
+# Entrada por teléfono + PIN, y las apps sin código en la liga (/n y /r)
+[[redirects]]
+  from = "/api/acceso"
+  to = "/.netlify/functions/acceso"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/n"
+  to = "/n.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/r"
+  to = "/r.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/masiva"
+  to = "/.netlify/functions/masiva"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/m"
+  to = "/m.html"
+  status = 200
+  force = true

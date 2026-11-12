@@ -4,6 +4,7 @@
 //
 // POST /api/ruta   { code, d: 'hoy' | 'manana' | 'AAAA-MM-DD' }
 
+const ACC = require('../lib/acceso');
 const AT_BASE = process.env.AIRTABLE_BASE_ID || 'appqjYUAGBRIh6RHX';
 const AT_TABLE = process.env.AIRTABLE_TABLE_ID || 'tbl77Z2y9GVqC30H0';
 const AT_MARCA = process.env.AIRTABLE_MARCA_TABLE_ID || 'tbllwN1wnWuWbN5cY';
@@ -161,18 +162,26 @@ exports.handler = async (event) => {
     return reply(400, { error: 'json' });
   }
   const code = String(b.code || '');
-  if (!CODE_RE.test(code)) {
+  const usaSesion = !!b.sesion;
+  if (!usaSesion && (process.env.ALLOW_CODE_LINKS === 'false' || !CODE_RE.test(code))) {
     await wait(400);
     return reply(404, { error: 'codigo' });
   }
 
   try {
-    const marcas = await atList(
-      AT_MARCA,
-      { filterByFormula: `AND({${M.codigo}}='${code}',{${M.activo}})`, maxRecords: '1' },
-      [M.nombre]
-    );
-    const marca = marcas[0];
+    let marca;
+    if (usaSesion) {
+      const r = await ACC.resolver(key(), b.sesion, [M.nombre], AT_MARCA);
+      if (!r) return reply(401, { error: 'sesion' });
+      marca = r.marca;
+    } else {
+      const marcas = await atList(
+        AT_MARCA,
+        { filterByFormula: `AND({${M.codigo}}='${code}',{${M.activo}})`, maxRecords: '1' },
+        [M.nombre]
+      );
+      marca = marcas[0];
+    }
     if (!marca) {
       await wait(400);
       return reply(404, { error: 'codigo' });

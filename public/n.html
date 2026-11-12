@@ -67,6 +67,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     <p class="small" style="margin:8px 0 0">Pídele a MantenGO tu liga personal de solicitud.</p>
   </section>
 
+  <div id="login" hidden></div>
   <section class="card" id="load"><span class="small">Cargando…</span></section>
 
   <form id="form" hidden novalidate autocomplete="on">
@@ -162,6 +163,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
   </section>
 </main>
 
+<script src="/acceso.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 (function () {
@@ -176,18 +178,22 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
   function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
+  var CON_CODIGO = /^[A-Za-z0-9_-]{16,64}$/.test(CODE);
   function call(body) {
-    body.code = CODE;
+    if (CON_CODIGO) body.code = CODE; else body.sesion = MGA.token();
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
   }
   function showErr(t) { var e = $('err'); e.textContent = t || ''; e.hidden = !t; if (t) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
 
-  if (!/^[A-Za-z0-9_-]{16,64}$/.test(CODE)) { show('load', false); show('bad', true); return; }
-
   /* ---------- carga ---------- */
-  call({ action: 'info' }).then(function (d) {
+  function arrancar() {
+    if (!CON_CODIGO && !MGA.token()) { show('load', false); show('login', true); MGA.login($('login'), function () { show('login', false); show('load', true); arrancar(); }); return; }
+    cargar();
+  }
+  function cargar() { call({ action: 'info' }).then(function (d) {
     show('load', false);
+    if (d._status === 401) { MGA.clear(); return arrancar(); }
     if (d._status === 404) return show('bad', true);
     if (!d.ok) { $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Revisa tu internet e inténtalo de nuevo.</p>'; return; }
     $('para').textContent = d.nombre ? 'Para ' + d.nombre : '';
@@ -197,7 +203,8 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     $('tel').value = lsGet('mg_n_tel');
     show('form', true);
     initMap();
-  }).catch(function () { show('load', false); $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Revisa tu internet e inténtalo de nuevo.</p>'; });
+  }).catch(function () { show('load', false); $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Revisa tu internet e inténtalo de nuevo.</p>'; }); }
+  arrancar();
 
   function buildTipos(list) {
     var box = $('tipos'); box.innerHTML = '';

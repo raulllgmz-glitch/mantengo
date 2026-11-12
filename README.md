@@ -187,3 +187,18 @@ Liga de solo lectura que muestra los servicios de un cliente programados un día
 - Tabla **Servicios**: `Fecha Programada` debe ser "Fecha con hora" (si solo tiene fecha, la parada dice "Horario por confirmar"); `Cliente` vinculado; `Técnico` opcional.
 - La función usa `AIRTABLE_TOKEN` (solo lectura).
 Mapa: la ruta muestra un mini mapa con las paradas numeradas (usa el campo `Coordenadas` de Servicios, "lat, lon"). Si hay varias camionetas (distintos valores en `Técnico`), se agrupan por técnico, cada una con su color y su propia numeración.
+
+## 13. Acceso por teléfono + PIN
+
+Páginas `/n` (solicitud) y `/r` (ruta) sin código en la liga: piden el teléfono, mandan un PIN (Twilio Verify) y la sesión
+dura 30 días. El teléfono debe estar en la tabla **Contactos** (Nombre, Teléfono, Marca [vínculo], Activo [casilla]).
+Variables en Netlify: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SID`, `SESSION_SECRET` (≥32 caracteres al azar),
+`OTP_CHANNEL` (`sms`; `whatsapp` cuando esté listo). Las ligas con código siguen funcionando hasta poner `ALLOW_CODE_LINKS=false`.
+Campo opcional en Servicios: `Solicitó` (texto) guarda quién pidió el servicio.
+
+## 14. Carga masiva (`/m`)
+
+Plantilla de Excel por marca (marca y "cargado por" bloqueados, tipo de servicio con lista, hoja protegida), revisión fila por fila
+y creación en lotes de 10. Máximo 200 filas por carga. La marca, `Contacto User` y `Tel User` salen siempre de la sesión.
+Acepta dirección, coordenadas o link de Google Maps. Opcional: `MASIVA_ROLES` (ej. `Admin,Coordinador`) limita quién puede
+usarla según el campo `Roll` de Conactos. Requiere `exceljs` (se instala solo en el deploy de Netlify).

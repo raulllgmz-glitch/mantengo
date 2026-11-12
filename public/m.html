@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carga masiva · MantenGO</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0F1B24">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0F1B24;--card:#16262F;--line:#2A3E4D;--orange:#F5A623;--muted:#A9B8C3;--ok:#4CD38A;--bad:#FF8A8A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px;display:flex;flex-direction:column;gap:18px}
+.logo{width:170px;height:auto}
+h1{margin:4px 0 0;font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.sub{font-size:14px;color:var(--muted);margin:4px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.card h2{margin:0 0 4px;font-size:17px}
+.k{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--orange)}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;border:0;border-radius:999px;background:var(--orange);color:#0F1B24;font:inherit;font-size:16px;font-weight:800;cursor:pointer;text-decoration:none;margin-top:12px}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.sec{background:transparent;color:#fff;border:1.5px solid #3A5062;font-weight:700}
+.small{font-size:13px;color:var(--muted)}
+.err{color:var(--bad);font-weight:600;font-size:14px;margin:10px 0 0}
+input[type=file]{width:100%;margin-top:12px;color:var(--muted);font:inherit;font-size:14px}
+input[type=file]::file-selector-button{margin-right:12px;padding:10px 16px;border-radius:999px;border:1.5px solid #3A5062;background:transparent;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.res{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px}
+.tag{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700;background:#1E3040}
+.tag.g{color:var(--ok)}.tag.r{color:var(--bad)}
+.fila{padding:12px 0;border-top:1px solid var(--line);font-size:14px}
+.fila b{display:block;font-size:15px}
+.fila .e{color:var(--bad);font-weight:600}.fila .a{color:var(--orange)}
+.fila .n{color:var(--muted);font-size:12px;font-weight:700;margin-right:6px}
+.fila a{color:var(--orange);font-weight:600}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
+  <div><h1>Carga masiva de servicios</h1><p class="sub" id="marca">Sube muchos servicios de una sola vez con una plantilla de Excel.</p></div>
+
+  <div id="login" hidden></div>
+  <section class="card" id="load">Cargando…</section>
+
+  <div id="app" hidden style="display:flex;flex-direction:column;gap:18px">
+    <section class="card" id="s1">
+      <span class="k">Paso 1</span><h2>Descarga la plantilla</h2>
+      <p class="small" style="margin:0">Ya sale con tu marca y tu nombre. Llena una fila por servicio y guárdala en Excel.</p>
+      <button class="btn sec" id="bplan" type="button">Descargar plantilla</button>
+      <p class="err" id="e1" hidden></p>
+    </section>
+    <section class="card" id="s2">
+      <span class="k">Paso 2</span><h2>Sube tu archivo lleno</h2>
+      <input type="file" id="arch" accept=".xlsx">
+      <p class="err" id="e2" hidden></p>
+    </section>
+    <section class="card" id="s3" hidden>
+      <span class="k">Paso 3</span><h2>Revisa antes de crear</h2>
+      <div class="res" id="resumen"></div>
+      <div id="lista"></div>
+      <button class="btn" id="bcrear" type="button">Crear servicios</button>
+      <p class="small" style="margin:10px 0 0" id="nota"></p>
+      <p class="err" id="e3" hidden></p>
+    </section>
+    <section class="card" id="s4" hidden>
+      <span class="k" style="color:var(--ok)">Listo</span><h2 id="t4"></h2>
+      <div id="creados"></div>
+      <button class="btn sec" id="bdesc" type="button">Descargar lista de folios</button>
+      <button class="btn sec" id="bnuevo" type="button">Hacer otra carga</button>
+    </section>
+  </div>
+</main>
+<script src="/acceso.js"></script>
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var filas = [], creados = [];
+  var MSG = { archivo: 'Ese archivo no se pudo leer. Usa la plantilla en formato .xlsx.', plantilla: 'No es la plantilla de MantenGO. Descárgala de nuevo en el paso 1.',
+    vacio: 'No encontramos filas con datos.', demasiadas: 'Son demasiadas filas. El máximo por carga es 200.', permiso: 'Tu usuario no tiene permiso para cargas masivas.',
+    tamano: 'El archivo es muy pesado.', airtable: 'No se pudo completar. Inténtalo de nuevo.' };
+
+  function call(body) {
+    body.sesion = MGA.token();
+    return fetch('/api/masiva', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+  }
+  function err(id, t) { var e = $(id); e.textContent = t || ''; e.hidden = !t; }
+  function b64ToBlob(b64, tipo) { var bin = atob(b64), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: tipo }); }
+  function bajar(blob, nombre) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+  function sesionCaida(d) { if (d._status === 401) { MGA.clear(); inicio(); return true; } return false; }
+
+  function inicio() {
+    $('app').hidden = true;
+    if (!MGA.token()) { $('load').hidden = true; $('login').hidden = false; MGA.login($('login'), function () { $('login').hidden = true; inicio(); }); return; }
+    $('load').hidden = true; $('app').hidden = false;
+  }
+
+  $('bplan').addEventListener('click', function () {
+    var b = this; b.disabled = true; err('e1', '');
+    call({ action: 'plantilla' }).then(function (d) {
+      b.disabled = false;
+      if (sesionCaida(d)) return;
+      if (!d.ok) return err('e1', MSG[d.error] || MSG.airtable);
+      bajar(b64ToBlob(d.data, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'), d.nombre);
+    }).catch(function () { b.disabled = false; err('e1', 'Sin conexión. Revisa tu internet.'); });
+  });
+
+  $('arch').addEventListener('change', function () {
+    var f = this.files[0]; err('e2', ''); $('s3').hidden = true; $('s4').hidden = true;
+    if (!f) return;
+    if (!/\.xlsx$/i.test(f.name)) return err('e2', 'Sube el archivo en formato .xlsx.');
+    if (f.size > 1000000) return err('e2', 'El archivo es muy pesado (máximo 1 MB).');
+    var rd = new FileReader();
+    rd.onload = function () {
+      var b64 = String(rd.result).split(',')[1] || '';
+      $('arch').disabled = true;
+      call({ action: 'validar', archivo: b64 }).then(function (d) {
+        $('arch').disabled = false;
+        if (sesionCaida(d)) return;
+        if (!d.ok) return err('e2', MSG[d.error] || MSG.airtable);
+        filas = d.filas; mostrar(d);
+      }).catch(function () { $('arch').disabled = false; err('e2', 'Sin conexión. Revisa tu internet.'); });
+    };
+    rd.readAsDataURL(f);
+  });
+
+  function mostrar(d) {
+    var malas = d.total - d.buenas;
+    $('resumen').innerHTML = '<span class="tag">' + d.total + ' filas</span><span class="tag g">' + d.buenas + ' listas</span>' + (malas ? '<span class="tag r">' + malas + ' con error</span>' : '');
+    $('lista').innerHTML = filas.filter(function (f) { return !f.ok || f.avisos.length; }).map(function (f) {
+      return '<div class="fila"><b><span class="n">Fila ' + f.fila + '</span>' + esc(f.datos.lugar || '(sin establecimiento)') + '</b>' +
+        f.errores.map(function (t) { return '<div class="e">' + esc(t) + '</div>'; }).join('') +
+        f.avisos.map(function (t) { return '<div class="a">' + esc(t) + '</div>'; }).join('') + '</div>';
+    }).join('');
+    $('bcrear').disabled = !d.buenas;
+    $('bcrear').textContent = 'Crear ' + d.buenas + (d.buenas === 1 ? ' servicio' : ' servicios');
+    $('nota').textContent = malas ? 'Las filas con error no se crean. Corrígelas en tu archivo y vuelve a subirlo, o crea solo las listas.' : '';
+    $('s3').hidden = false; err('e3', '');
+    $('s3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('bcrear').addEventListener('click', function () {
+    var b = this; b.disabled = true; b.textContent = 'Creando…'; err('e3', '');
+    call({ action: 'crear', filas: filas.filter(function (f) { return f.ok; }).map(function (f) { return { fila: f.fila, datos: f.datos }; }) }).then(function (d) {
+      if (sesionCaida(d)) return;
+      if (!d.ok) { b.disabled = false; b.textContent = 'Reintentar'; return err('e3', MSG[d.error] || MSG.airtable); }
+      creados = d.creados; $('s3').hidden = true; $('s4').hidden = false;
+      $('t4').textContent = d.creados.length + (d.creados.length === 1 ? ' servicio creado' : ' servicios creados');
+      $('creados').innerHTML = d.creados.map(function (c) {
+        return '<div class="fila"><b>' + esc(c.folio || 'Servicio') + ' · ' + esc(c.lugar) + '</b><a href="/s/' + encodeURIComponent(c.token) + '" target="_blank" rel="noopener">Ver seguimiento</a></div>';
+      }).join('');
+      $('s4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function () { b.disabled = false; b.textContent = 'Reintentar'; err('e3', 'Sin conexión. No se sabe si se crearon: revisa antes de reintentar.'); });
+  });
+
+  $('bdesc').addEventListener('click', function () {
+    var csv = '﻿Folio,Establecimiento,Seguimiento\n' + creados.map(function (c) { return [c.folio, '"' + String(c.lugar).replace(/"/g, '""') + '"', location.origin + '/s/' + c.token].join(','); }).join('\n');
+    bajar(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'folios-carga-masiva.csv');
+  });
+  $('bnuevo').addEventListener('click', function () { location.reload(); });
+  inicio();
+})();
+</script>
+</body>
+</html>
