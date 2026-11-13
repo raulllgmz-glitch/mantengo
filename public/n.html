@@ -195,7 +195,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     show('load', false);
     if (d._status === 401) { MGA.clear(); return arrancar(); }
     if (d._status === 404) return show('bad', true);
-    if (!d.ok) { $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Revisa tu internet e inténtalo de nuevo.</p>'; return; }
+    if (!d.ok) { $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Inténtalo de nuevo. (código: ' + (d.error || d._status) + ')</p>'; return; }
     $('para').textContent = d.nombre ? 'Para ' + d.nombre : '';
     buildTipos(d.tipos || []);
     buildRecientes(d.recientes || []);

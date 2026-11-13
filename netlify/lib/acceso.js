@@ -74,9 +74,13 @@ async function contactoPorTel(key, tel10) {
 async function resolver(key, token, camposMarca, tablaMarca) {
   const p = leer(token);
   if (!p) return null;
-  const c = await at(key, `${encodeURIComponent(AT_CONTACTOS)}/${p.c}`, { 'fields[]': [C.nombre, C.tel, C.marca, C.activo, C.rol] });
+  const porId = async (tabla, id, campos) => {
+    const d = await at(key, tabla, { filterByFormula: `RECORD_ID()='${id}'`, maxRecords: '1', 'fields[]': campos });
+    return (d && d.records && d.records[0]) || null;
+  };
+  const c = await porId(encodeURIComponent(AT_CONTACTOS), p.c, [C.nombre, C.tel, C.marca, C.activo, C.rol]);
   if (!c || !c.fields[C.activo] || (c.fields[C.marca] || [])[0] !== p.m) return null;
-  const m = await at(key, `${tablaMarca}/${p.m}`, { 'fields[]': camposMarca });
+  const m = await porId(tablaMarca, p.m, camposMarca);
   if (!m) return null;
   return {
     contacto: { id: c.id, rol: String(c.fields[C.rol] || ''), nombre: String(c.fields[C.nombre] || '').slice(0, 80), tel: telDiez(c.fields[C.tel]) },
