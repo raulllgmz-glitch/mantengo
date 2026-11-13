@@ -38,6 +38,20 @@ input[type=file]::file-selector-button{margin-right:12px;padding:10px 16px;borde
 .fila .e{color:var(--bad);font-weight:600}.fila .a{color:var(--orange)}
 .fila .n{color:var(--muted);font-size:12px;font-weight:700;margin-right:6px}
 .fila a{color:var(--orange);font-weight:600}
+.fila.ed{padding:14px 0}
+.fh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.fh b{display:flex;align-items:center;gap:6px;font-size:15px;min-width:0}
+.est{font-size:12px;font-weight:700;white-space:nowrap}.est.ok{color:var(--ok)}.est.mal{color:var(--bad)}
+.quita{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fld{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fld label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.fld input,.fld select,.fld textarea{width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);background:#0F1B24;color:#fff;font:inherit;font-size:15px;padding:8px 10px}
+.fld textarea{resize:vertical;min-height:60px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--orange);outline-offset:1px}
+.fld.bad input,.fld.bad select,.fld.bad textarea{border-color:var(--bad)}
+.full{grid-column:1 / -1}
+.vermapa{font-size:12px;color:var(--orange);font-weight:700}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -133,24 +147,92 @@ input[type=file]::file-selector-button{margin-right:12px;padding:10px 16px;borde
     rd.readAsDataURL(f);
   });
 
-  function mostrar(d) {
-    var malas = d.total - d.buenas;
-    $('resumen').innerHTML = '<span class="tag">' + d.total + ' filas</span><span class="tag g">' + d.buenas + ' listas</span>' + (malas ? '<span class="tag r">' + malas + ' con error</span>' : '');
-    $('lista').innerHTML = filas.map(function (f) {
-      return '<div class="fila"><b><span class="n">Fila ' + f.fila + '</span>' + esc(f.datos.lugar || '(sin establecimiento)') + (f.ok && !f.avisos.length ? ' <span style="color:var(--ok)">✓</span>' : '') + '</b>' +
-        f.errores.map(function (t) { return '<div class="e">' + esc(t) + '</div>'; }).join('') +
-        f.avisos.map(function (t) { return '<div class="a">' + esc(t) + '</div>'; }).join('') + '</div>';
+  var TIPOS = [], timerRev = null, revSeq = 0;
+  var CAMPOS = [['tipo', 'Tipo de servicio *', 'sel'], ['lugar', 'Establecimiento *'], ['falla', 'Solicitud / falla *', 'area', 1], ['dir', 'Dirección o link de Google Maps', 'txt', 1],
+    ['coords', 'Coordenadas (lat, lon)'], ['serie', 'Serie del equipo'], ['contacto', 'Contacto'], ['tel', 'Teléfono']];
+  function coordTxt(dt) { return dt.lat != null && dt.lon != null && dt.lat !== '' ? Number(dt.lat).toFixed(5) + ', ' + Number(dt.lon).toFixed(5) : (dt.coords || ''); }
+  function prep(f) { f.datos.coords = coordTxt(f.datos); return f; }
+  function campoErr(f, k) {
+    var t = f.errores.join(' | ').toLowerCase();
+    return (k === 'tipo' && t.indexOf('tipo') >= 0) || (k === 'lugar' && t.indexOf('establecimiento') >= 0) || (k === 'falla' && t.indexOf('falla') >= 0) ||
+      ((k === 'dir' || k === 'coords') && t.indexOf('dirección') >= 0) || (k === 'tel' && t.indexOf('teléfono') >= 0);
+  }
+  function estadoHtml(f) {
+    return (f.ok ? '<span class="est ok">✓ Lista</span>' : '<span class="est mal">Revisar</span>') +
+      '';
+  }
+  function msgsHtml(f) {
+    return f.errores.map(function (t) { return '<div class="e">' + esc(t) + '</div>'; }).join('') + f.avisos.map(function (t) { return '<div class="a">' + esc(t) + '</div>'; }).join('');
+  }
+  function mapaLink(dt) {
+    var c = String(dt.coords || '').match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    return c ? '<a class="vermapa" target="_blank" rel="noopener" href="https://www.google.com/maps?q=' + c[1] + ',' + c[2] + '">Ver en mapa ›</a>' : '';
+  }
+  function cardHtml(f, i) {
+    var dt = f.datos;
+    var campos = CAMPOS.map(function (c) {
+      var k = c[0], v = dt[k] == null ? '' : dt[k], id = 'f' + i + k, cls = 'fld' + (c[3] ? ' full' : '') + (campoErr(f, k) ? ' bad' : '');
+      var el;
+      if (c[2] === 'sel') el = '<select id="' + id + '" data-i="' + i + '" data-k="' + k + '"><option value="">Elige…</option>' + TIPOS.map(function (t) { return '<option' + (t === v ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select>';
+      else if (c[2] === 'area') el = '<textarea id="' + id + '" data-i="' + i + '" data-k="' + k + '" maxlength="500">' + esc(v) + '</textarea>';
+      else el = '<input id="' + id + '" type="text" data-i="' + i + '" data-k="' + k + '" value="' + esc(v) + '" maxlength="200"' + (k === 'tel' ? ' inputmode="tel"' : '') + '>';
+      return '<div class="' + cls + '"><label for="' + id + '">' + esc(c[1]) + '</label>' + el + '</div>';
     }).join('');
-    $('bcrear').disabled = !d.buenas;
-    $('bcrear').textContent = 'Crear ' + d.buenas + (d.buenas === 1 ? ' servicio' : ' servicios');
-    $('nota').textContent = malas ? 'Las filas con error no se crean. Corrígelas en tu archivo y vuelve a subirlo, o crea solo las listas.' : '';
+    return '<div class="fila ed" id="fila' + i + '"><div class="fh"><b><span class="n">Fila ' + f.fila + '</span><span id="est' + i + '">' + estadoHtml(f) + '</span></b>' +
+      '<button class="quita" type="button" data-q="' + i + '">Quitar</button></div><div class="g2">' + campos + '</div>' +
+      '<div style="margin-top:6px"><span id="map' + i + '">' + mapaLink(dt) + '</span><div id="msg' + i + '">' + msgsHtml(f) + '</div></div></div>';
+  }
+  function resumen() {
+    var buenas = filas.filter(function (f) { return f.ok; }).length, malas = filas.length - buenas;
+    $('resumen').innerHTML = '<span class="tag">' + filas.length + ' filas</span><span class="tag g">' + buenas + ' listas</span>' + (malas ? '<span class="tag r">' + malas + ' con error</span>' : '');
+    $('bcrear').disabled = !buenas;
+    $('bcrear').textContent = 'Crear ' + buenas + (buenas === 1 ? ' servicio' : ' servicios');
+    $('nota').textContent = malas ? 'Corrige los campos marcados en rojo. Las filas con error no se crean.' : 'Puedes editar cualquier campo antes de crear.';
+  }
+  function mostrar(d) {
+    TIPOS = d.tipos || TIPOS; filas = d.filas.map(prep);
+    $('lista').innerHTML = filas.map(cardHtml).join('');
+    resumen();
     $('s3').hidden = false; err('e3', '');
     $('s3').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  function aplicar(nuevas) {
+    nuevas.forEach(function (n, j) {
+      var f = filas[j]; if (!f) return;
+      f.ok = n.ok; f.errores = n.errores; f.avisos = n.avisos; f.datos.lat = n.datos.lat; f.datos.lon = n.datos.lon;
+      var ae = document.activeElement, enCoords = ae && ae.id === 'f' + j + 'coords';
+      if (n.datos.lat != null && !enCoords) { f.datos.coords = coordTxt(f.datos); var ci = $('f' + j + 'coords'); if (ci) ci.value = f.datos.coords; }
+      var e = $('est' + j); if (e) e.innerHTML = estadoHtml(f);
+      var m = $('msg' + j); if (m) m.innerHTML = msgsHtml(f);
+      var mp = $('map' + j); if (mp) mp.innerHTML = mapaLink(f.datos);
+      CAMPOS.forEach(function (c) { var inp = $('f' + j + c[0]); if (inp && inp.parentNode) inp.parentNode.classList.toggle('bad', campoErr(f, c[0])); });
+    });
+    resumen();
+  }
+  function revisar() {
+    var mi = ++revSeq;
+    call({ action: 'revisar', filas: filas.map(function (f) { return { fila: f.fila, datos: f.datos }; }) }).then(function (d) {
+      if (mi !== revSeq || sesionCaida(d)) return;
+      if (d.ok && d.filas.length === filas.length) aplicar(d.filas);
+    }).catch(function () { /* sin conexión: se vuelve a validar al crear */ });
+  }
+  $('lista').addEventListener('input', function (e) {
+    var t = e.target, i = t.getAttribute('data-i'), k = t.getAttribute('data-k'); if (i == null) return;
+    var dt = filas[+i].datos; dt[k] = t.value;
+    if (k === 'coords') { dt.lat = null; dt.lon = null; }
+    clearTimeout(timerRev); timerRev = setTimeout(revisar, 700);
+  });
+  $('lista').addEventListener('change', function (e) { var t = e.target; if (t.tagName === 'SELECT') { clearTimeout(timerRev); revisar(); } });
+  $('lista').addEventListener('click', function (e) {
+    var q = e.target.closest('button[data-q]'); if (!q) return;
+    filas.splice(+q.getAttribute('data-q'), 1);
+    if (!filas.length) { $('s3').hidden = true; $('arch').value = ''; return; }
+    $('lista').innerHTML = filas.map(cardHtml).join(''); resumen(); revisar();
+  });
 
   $('bcrear').addEventListener('click', function () {
     var b = this; b.disabled = true; b.textContent = 'Creando…'; err('e3', '');
-    call({ action: 'crear', filas: filas.filter(function (f) { return f.ok; }).map(function (f) { return { fila: f.fila, datos: f.datos }; }) }).then(function (d) {
+    clearTimeout(timerRev); call({ action: 'crear', filas: filas.filter(function (f) { return f.ok; }).map(function (f) { return { fila: f.fila, datos: f.datos }; }) }).then(function (d) {
       if (sesionCaida(d)) return;
       if (!d.ok) { b.disabled = false; b.textContent = 'Reintentar'; return err('e3', MSG[d.error] || MSG.airtable); }
       creados = d.creados; $('s3').hidden = true; $('s4').hidden = false;

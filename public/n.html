@@ -89,10 +89,6 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
 
       <div class="sec" role="group" aria-labelledby="t2">
         <div class="t" id="t2">2 · ¿Dónde y en qué equipo?</div>
-        <div id="recWrap" hidden>
-          <div class="small" style="margin-bottom:8px">Tus tiendas recientes</div>
-          <div class="row" id="rec"></div>
-        </div>
         <div class="field">
           <label class="lbl" for="lugar">Nombre del establecimiento *</label>
           <input id="lugar" type="text" maxlength="120" placeholder="Ej. Abarrotes La Esperanza" autocomplete="organization">
@@ -139,14 +135,9 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
       </div>
 
       <div class="sec" role="group" aria-labelledby="t4">
-        <div class="t" id="t4">4 · ¿Cuándo te conviene?</div>
-        <div class="row" id="fechas">
-          <button class="pill" type="button" data-f="hoy" aria-pressed="false">Hoy</button>
-          <button class="pill" type="button" data-f="manana" aria-pressed="true">Mañana</button>
-          <button class="pill" type="button" data-f="otra" aria-pressed="false">Elegir fecha</button>
-        </div>
-        <input id="fecha" type="date" hidden aria-label="Fecha que te conviene">
-        <div class="small">Te confirmamos el horario exacto después.</div>
+        <div class="t" id="t4">4 · ¿Qué día prefieres?</div>
+        <input id="fecha" type="date" aria-label="Fecha preferida">
+        <div class="small">Agendamos con mínimo 24 horas de anticipación. Te confirmamos el horario exacto después.</div>
       </div>
 
       <div class="hp" aria-hidden="true"><label>No llenar<input id="hp" type="text" tabindex="-1" autocomplete="off"></label></div>
@@ -204,7 +195,6 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     if (!d.ok) { $('load').hidden = false; $('load').innerHTML = '<p class="err">No se pudo cargar. Inténtalo de nuevo. (código: ' + (d.error || d._status) + ')</p>'; return; }
     $('para').textContent = d.nombre ? 'Para ' + d.nombre : '';
     buildTipos(d.tipos || []);
-    buildRecientes(d.recientes || []);
     cargarGoogle(d.gkey);
     $('contacto').value = lsGet('mg_n_contacto');
     $('tel').value = lsGet('mg_n_tel');
@@ -221,25 +211,6 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
       b.addEventListener('click', function () {
         st.tipo = t;
         Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
-      });
-      box.appendChild(b);
-    });
-  }
-
-  function buildRecientes(list) {
-    if (!list.length) return;
-    show('recWrap', true);
-    var box = $('rec');
-    list.forEach(function (r) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'pill'; b.setAttribute('aria-pressed', 'false'); b.textContent = r.lugar;
-      b.addEventListener('click', function () {
-        Array.prototype.forEach.call(box.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
-        $('lugar').value = r.lugar; $('dir').value = r.dir || '';
-        if (r.contacto) $('contacto').value = r.contacto;
-        if (r.tel) $('tel').value = r.tel;
-        $('serie').value = r.serie || '';
-        if (r.lat !== null && r.lon !== null) setPin(r.lat, r.lon, true); else clearPin();
       });
       box.appendChild(b);
     });
@@ -303,16 +274,10 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
   });
 
   /* ---------- fecha ---------- */
-  var hoy = new Date(); var iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
-  $('fecha').min = iso;
-  Array.prototype.forEach.call($('fechas').children, function (b) {
-    b.addEventListener('click', function () {
-      st.fecha = b.getAttribute('data-f');
-      Array.prototype.forEach.call($('fechas').children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); });
-      show('fecha', st.fecha === 'otra');
-      if (st.fecha === 'otra') $('fecha').focus();
-    });
-  });
+  var hoyMx = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  var mm = new Date(hoyMx + 'T12:00:00Z'); mm.setUTCDate(mm.getUTCDate() + 1);
+  var manana = mm.toISOString().slice(0, 10);
+  $('fecha').min = manana; $('fecha').value = manana;
 
   /* ---------- fotos ---------- */
   $('addph').addEventListener('click', function () { $('fileph').click(); });
@@ -359,8 +324,9 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     if (lugar.length < 2) { $('lugar').focus(); return showErr('Escribe el nombre del establecimiento.'); }
     if (tel && (tel.replace(/\D/g, '').length < 8)) { $('tel').focus(); return showErr('Revisa el teléfono: parece incompleto.'); }
     if (falla.length < 3) { $('falla').focus(); return showErr('Cuéntanos brevemente qué pasa.'); }
-    var fecha = st.fecha;
-    if (fecha === 'otra') { fecha = $('fecha').value; if (!fecha) return showErr('Elige la fecha que te conviene.'); }
+    var fecha = $('fecha').value;
+    if (!fecha) return showErr('Elige la fecha.');
+    if (fecha < manana) return showErr('La fecha debe ser a partir de mañana (24 horas de anticipación).');
     st.sending = true; $('send').disabled = true; $('send').textContent = 'Enviando…';
     lsSet('mg_n_contacto', $('contacto').value.trim()); lsSet('mg_n_tel', tel);
     call({ action: 'crear', tipo: st.tipo, lugar: lugar, dir: $('dir').value.trim(), lat: st.lat, lon: st.lon,

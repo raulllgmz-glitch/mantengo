@@ -146,12 +146,11 @@ const mxDate = (offsetDays) => {
 
 function fechaSolicitada(v) {
   const s = String(v || '');
-  if (s === 'hoy') return mxDate(0);
-  if (s === 'manana') return mxDate(1);
+  if (s === 'hoy' || s === 'manana') return mxDate(1); // mínimo 24 h
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const hoy = mxDate(0);
     const tope = mxDate(120);
-    if (s >= hoy && s <= tope) return s;
+    if (s >= mxDate(1) && s <= tope) return s;
   }
   return '';
 }

@@ -219,3 +219,10 @@ y nunca va en el repositorio. Sin la variable, el campo funciona como texto norm
 Pantalla principal tras entrar con teléfono + PIN, según el diseño: Inicio (solicitar, servicio en curso, equipos, servicios, carga masiva,
 WhatsApp), Mis servicios (filtros y liga al seguimiento) y Mis equipos (agrupados por `Serie`; sin serie, por establecimiento).
 Rutas `/inicio`, `/servicios`, `/equipos` → `app.html`; datos de `/api/cliente` (solo lectura, con sesión). Esta es la liga principal.
+
+### Previsualización editable de la carga masiva
+Al subir el Excel, cada fila aparece como una ficha con todos sus campos editables (tipo, establecimiento, falla, dirección/link, coordenadas, serie, contacto, teléfono). Al editar se revalida solo (acción `revisar`) y se actualizan ✓/errores; "Quitar" descarta una fila. El servidor vuelve a validar todo al crear.
+
+### Cambios en solicitud (`/n`)
+- Se quitó "Tus tiendas recientes".
+- La fecha ahora es un solo selector con mínimo mañana (hora CDMX), ya preseleccionado en mañana. El servidor también rechaza fechas anteriores a mañana (los valores viejos "hoy"/"manana" se guardan como mañana).

@@ -261,6 +261,26 @@ function revisar(items) {
   });
 }
 
+// Links de Google Maps (en dirección o coordenadas) → coordenadas, con tiempo límite.
+async function resolverEnlaces(items) {
+  const fin = Date.now() + 6500;
+  let i = 0;
+  const pool = Array.from({ length: 8 }, async () => {
+    while (i < items.length) {
+      const it = items[i++];
+      const raw = it.raw;
+      if (Number.isFinite(Number(raw.lat)) && raw.lat !== '' && raw.lat != null) continue;
+      if (parseCoords(raw.coords) && !esLinkMaps(raw.coords)) continue;
+      const fuente = [raw.coords, raw.dir].find((x) => esLinkMaps(x));
+      if (fuente) {
+        const c = await resolverLink(fuente, fin);
+        if (c) { raw.lat = c.lat; raw.lon = c.lon; } else it.aviso = 'No se pudo leer la ubicación del link';
+      }
+    }
+  });
+  await Promise.all(pool);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return reply(405, { error: 'metodo' });
   const h = event.headers || {};
@@ -276,7 +296,7 @@ exports.handler = async (event) => {
   let b;
   try { b = JSON.parse(event.body || '{}'); } catch (e) { return reply(400, { error: 'json' }); }
   const action = String(b.action || '');
-  if (!['plantilla', 'validar', 'crear'].includes(action)) return reply(400, { error: 'accion' });
+  if (!['plantilla', 'validar', 'revisar', 'crear'].includes(action)) return reply(400, { error: 'accion' });
 
   try {
     const r = await ACC.resolver(apiKey(), b.sesion, ['Cliente Marca'], AT_MARCA);
@@ -304,39 +324,29 @@ exports.handler = async (event) => {
       }
       if (!items.length) return reply(400, { error: 'vacio' });
       if (items.length > MAX_FILAS) return reply(400, { error: 'demasiadas', max: MAX_FILAS });
-      // links de Google Maps → coordenadas (con tiempo límite)
-      const fin = Date.now() + 6500;
-      let i = 0;
-      const pool = Array.from({ length: 8 }, async () => {
-        while (i < items.length) {
-          const it = items[i++];
-          const raw = it.raw;
-          if (parseCoords(raw.coords) && !esLinkMaps(raw.coords)) continue;
-          const fuente = [raw.coords, raw.dir].find((x) => esLinkMaps(x));
-          if (fuente) {
-            const c = await resolverLink(fuente, fin);
-            if (c) { raw.lat = c.lat; raw.lon = c.lon; } else it.aviso = 'No se pudo leer la ubicación del link';
-          }
-        }
-      });
-      await Promise.all(pool);
+      await resolverEnlaces(items);
       const filas = revisar(items);
       filas.forEach((f, k) => { if (items[k].aviso) f.avisos.push(items[k].aviso); });
       return reply(200, {
-        ok: true, marca: nombreMarca, total: filas.length, buenas: filas.filter((f) => f.ok).length, filas
+        ok: true, marca: nombreMarca, tipos: TIPOS, total: filas.length, buenas: filas.filter((f) => f.ok).length, filas
       });
     }
 
-    // crear
+    // revisar (tras editar en pantalla) y crear: reciben las filas con sus datos
     const entrada = Array.isArray(b.filas) ? b.filas.slice(0, MAX_FILAS) : [];
     if (!entrada.length) return reply(400, { error: 'vacio' });
-    const items = entrada.map((f, k) => ({
-      fila: Number(f && f.fila) || k + 1,
-      raw: { tipo: f && f.datos && f.datos.tipo, lugar: f && f.datos && f.datos.lugar, falla: f && f.datos && f.datos.falla,
-        dir: f && f.datos && f.datos.dir, lat: f && f.datos && f.datos.lat, lon: f && f.datos && f.datos.lon,
-        contacto: f && f.datos && f.datos.contacto, tel: f && f.datos && f.datos.tel,
-        serie: f && f.datos && f.datos.serie }
-    }));
+    const items = entrada.map((f, k) => {
+      const d = (f && f.datos) || {};
+      return { fila: Number(f && f.fila) || k + 1,
+        raw: { tipo: d.tipo, lugar: d.lugar, falla: d.falla, dir: d.dir, lat: d.lat, lon: d.lon, coords: d.coords,
+          contacto: d.contacto, tel: d.tel, serie: d.serie } };
+    });
+    if (action === 'revisar') {
+      await resolverEnlaces(items);
+      const filas = revisar(items);
+      filas.forEach((f, k) => { if (items[k].aviso) f.avisos.push(items[k].aviso); });
+      return reply(200, { ok: true, total: filas.length, buenas: filas.filter((f) => f.ok).length, filas });
+    }
     const buenas = revisar(items).filter((f) => f.ok);
     const registros = buenas.map((f) => {
       const d = f.datos;
