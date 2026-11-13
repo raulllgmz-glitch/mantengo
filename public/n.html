@@ -64,7 +64,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
 </head>
 <body>
 <main class="wrap">
-  <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
+  <div style="display:flex;align-items:center;justify-content:space-between"><img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76"><a href="/inicio" style="color:var(--orange);font-weight:700;font-size:14px;text-decoration:none">← Inicio</a></div>
 
   <section class="card" id="bad" hidden>
     <p class="err">Esta liga no es válida o ya no está activa.</p>
@@ -250,6 +250,12 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
   /* ---------- buscador de direcciones (Google Places) ---------- */
   function cargarGoogle(key) {
     if (!key || window.google) return;
+    window.gm_authFailure = function () {
+      try { console.warn('Google Maps: la clave fue rechazada (restricción de sitio, API no activada o facturación).'); } catch (e) {}
+      var n = document.getElementById('gnota');
+      if (!n) { n = document.createElement('div'); n.id = 'gnota'; n.className = 'small'; $('dir').parentNode.appendChild(n); }
+      n.textContent = 'El buscador no está disponible por ahora. Escribe la dirección y marca el pin en el mapa.';
+    };
     window.__gListo = function () {
       try {
         var ac = new google.maps.places.Autocomplete($('dir'), { fields: ['geometry', 'name', 'formatted_address'], componentRestrictions: { country: 'mx' } });
@@ -267,6 +273,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     };
     var sc = document.createElement('script');
     sc.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&libraries=places&language=es&region=MX&callback=__gListo';
+    sc.onerror = function () { window.gm_authFailure(); };
     sc.async = true; document.head.appendChild(sc);
   }
   function initMap() {

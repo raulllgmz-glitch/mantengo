@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MantenGO</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0F1B24">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0F1B24;--card:#16262F;--line:#2A3E4D;--orange:#F5A623;--muted:#A9B8C3;--ok:#7FD6A5;--bad:#FF8A8A}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+a{text-decoration:none;color:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.wrap{max-width:520px;margin:0 auto;padding:20px 20px calc(110px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:16px}
+.top{display:flex;align-items:center;justify-content:space-between}
+.logo{width:150px;height:32px;object-fit:contain;object-position:left center}
+.bell{position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px;background:var(--card)}
+.bell i{position:absolute;top:10px;right:11px;width:9px;height:9px;border-radius:999px;background:var(--orange);border:2px solid var(--card)}
+.hi{font-size:14px;color:var(--muted)}
+h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.cta{display:flex;align-items:center;gap:14px;padding:20px;border-radius:22px;background:var(--orange);color:#0F1B24}
+.cta b{display:block;font-size:20px;font-weight:800}.cta span{display:block;font-size:14px;line-height:1.4;font-weight:500;margin-top:4px}
+.cta .go{flex:none;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px;background:#0F1B24}
+.card{display:flex;flex-direction:column;gap:12px;padding:16px 18px;border-radius:20px;background:var(--card)}
+.k{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--orange);text-transform:uppercase}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.badge{flex:none;font-size:12px;font-weight:700;color:#0F1B24;background:var(--orange);padding:4px 10px;border-radius:999px;white-space:nowrap}
+.badge.g{color:var(--ok);background:rgba(127,214,165,.14)}.badge.m{color:var(--muted);background:#1E3040}
+.t{font-size:17px;font-weight:700}.s{font-size:13px;color:var(--muted)}
+.bars{display:flex;gap:6px}.bars i{flex:1;height:6px;border-radius:999px;background:var(--line)}.bars i.on{background:var(--orange)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:20px;background:var(--card)}
+.tile b{display:block;font-size:16px}.tile span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.wa{display:flex;align-items:center;justify-content:center;gap:10px;height:50px;border-radius:999px;border:1.5px solid #2F4455;font-size:15px;font-weight:600}
+.head{display:flex;flex-direction:column;gap:1px;padding-top:6px}
+.head b{font-size:22px;font-weight:800}.head span{font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{height:40px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);color:#D5DEE5;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:rgba(245,166,35,.16);border-color:var(--orange);color:#fff;font-weight:700}
+.item{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:20px;background:var(--card);border:1.5px solid transparent}
+.item.act{border-color:var(--orange)}
+.ico{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:var(--bg);flex:none}
+.item .foot{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:#D5DEE5;gap:8px}
+.search{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.search input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#fff;font:inherit;font-size:16px}
+.search input::placeholder{color:#8497A5}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);font-size:14px}
+.err{color:var(--bad);font-weight:600;font-size:14px}
+nav.nb{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#0B151D;border-top:1px solid #1E3040;padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
+nav.nb a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:54px;color:#9FB0BC;font-size:11px;font-weight:600}
+nav.nb a[aria-current="page"]{color:var(--orange);font-weight:700}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="wrap" id="main">
+  <div class="top">
+    <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
+    <a class="bell" href="/servicios" aria-label="Mis servicios" id="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i id="dot" hidden></i></a>
+  </div>
+
+  <div id="login" hidden></div>
+  <div id="load" class="empty">Cargando…</div>
+  <div id="fail" class="empty err" hidden></div>
+
+  <section id="v-inicio" style="display:none;flex-direction:column;gap:16px">
+    <div><div class="hi" id="hola">Bienvenido de vuelta</div><h1>¿Qué necesitas mover o reparar?</h1></div>
+    <a class="cta" href="/n"><div style="flex:1"><b>Solicitar servicio</b><span>Instalación, reparación, retiro, rehabilitación y logística.</span></div><div class="go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></div></a>
+    <div id="curso"></div>
+    <div class="grid">
+      <a class="tile" href="/equipos"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M5 10h14"/><path d="M8.5 6v1.5"/><path d="M8.5 13v3"/></svg><div><b>Mis equipos</b><span>Ubicación e historial</span></div></a>
+      <a class="tile" href="/servicios"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><path d="M9 12l2 2 4-4"/><path d="M9 17.5h6"/></svg><div><b>Mis servicios</b><span>Folios y evidencias</span></div></a>
+    </div>
+    <a class="tile" href="/m" style="flex-direction:row;align-items:center;gap:14px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9 14l3 3 3-3"/></svg><div><b>Carga masiva</b><span>Varios servicios a la vez con una plantilla de Excel</span></div></a>
+    <a class="wa" href="https://wa.me/524424501585" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"/></svg>Cotizar por WhatsApp</a>
+  </section>
+
+  <section id="v-servicios" style="display:none;flex-direction:column;gap:14px">
+    <div class="head"><b>Mis servicios</b><span id="sv-sub"></span></div>
+    <div class="chips" role="group" aria-label="Filtrar servicios">
+      <button class="chip" type="button" data-f="todos" aria-pressed="true">Todos</button>
+      <button class="chip" type="button" data-f="curso" aria-pressed="false">En curso</button>
+      <button class="chip" type="button" data-f="fin" aria-pressed="false">Terminados</button>
+    </div>
+    <div id="sv-lista" style="display:flex;flex-direction:column;gap:12px"></div>
+  </section>
+
+  <section id="v-equipos" style="display:none;flex-direction:column;gap:14px">
+    <div class="head"><b>Mis equipos</b><span id="eq-sub"></span></div>
+    <label class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9FB0BC" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Buscar equipo</span><input id="eq-q" type="search" placeholder="Buscar por ID o ubicación" autocomplete="off"></label>
+    <div id="eq-lista" style="display:flex;flex-direction:column;gap:12px"></div>
+  </section>
+</main>
+
+<nav class="nb" aria-label="Navegación principal" id="nb" hidden>
+  <a href="/inicio" data-v="inicio"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>Inicio</a>
+  <a href="/n"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>Solicitar</a>
+  <a href="/servicios" data-v="servicios"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><path d="M9 12l2 2 4-4"/></svg>Servicios</a>
+  <a href="/equipos" data-v="equipos"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M5 10h14"/><path d="M8.5 6v1.5"/><path d="M8.5 13v3"/></svg>Equipos</a>
+</nav>
+
+<script src="/acceso.js"></script>
+<script>
+(function () {
+  'use strict';
+  var TZ = 'America/Mexico_City';
+  var ETAPAS = ['Recibido', 'Programado', 'En camino', 'En proceso', 'Terminado'];
+  var D = null, VISTA = 'inicio', FILTRO = 'todos', timer = null;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function paso(e) { return Math.max(0, ETAPAS.indexOf(e)) + 1; }
+  function activo(s) { return s.etapa !== 'Terminado'; }
+  function hoyMx() { return new Date().toLocaleDateString('en-CA', { timeZone: TZ }); }
+  function dia(iso) { try { return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ }); } catch (e) { return ''; } }
+  function cuando(iso, conHora) {
+    if (!iso) return '';
+    var t = Date.parse(iso); if (isNaN(t)) return '';
+    var d = dia(iso), h = hoyMx(), man = new Date(Date.parse(h + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10), ayer = new Date(Date.parse(h + 'T12:00:00Z') - 864e5).toISOString().slice(0, 10);
+    var base = d === h ? 'Hoy' : d === man ? 'Mañana' : d === ayer ? 'Ayer' : new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ });
+    if (!conHora || /^\d{4}-\d{2}-\d{2}$/.test(iso)) return base;
+    return base + ', ' + new Date(t).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: TZ }).replace(/\s?([ap])\.?\s?m\.?/i, ' $1. m.');
+  }
+  function fechaSv(s) { return s.etapa === 'Terminado' ? (s.cierre ? cuando(s.cierre, false) : '') : (cuando(s.prog, true) || cuando(s.sol, false) || cuando(s.creado, false)); }
+  function badge(e) { return '<span class="badge' + (e === 'Terminado' ? ' g' : e === 'Recibido' ? ' m' : '') + '">' + esc(e) + '</span>'; }
+  function titulo(s) { return esc(s.tipo || 'Servicio'); }
+  function cap(s) { return s.lugar || s.dir || ''; }
+
+  function call() {
+    return fetch('/api/cliente', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sesion: MGA.token() }), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+  }
+
+  function pintarInicio() {
+    $('hola').textContent = D.usuario ? 'Hola, ' + D.usuario.split(' ')[0] + ' · ' + D.marca : 'Bienvenido de vuelta' + (D.marca ? ' · ' + D.marca : '');
+    var vivos = D.servicios.filter(activo);
+    vivos.sort(function (a, b) { return paso(b.etapa) - paso(a.etapa); });
+    var s = vivos[0];
+    if (!s) { $('curso').innerHTML = '<div class="card"><div class="k">Servicio en curso</div><div class="s">No tienes servicios en curso por ahora.</div></div>'; }
+    else {
+      var n = paso(s.etapa), bars = '';
+      for (var i = 1; i <= 5; i++) bars += '<i class="' + (i <= n ? 'on' : '') + '"></i>';
+      var el = (s.token ? '<a class="card" href="/s/' + encodeURIComponent(s.token) + '">' : '<div class="card">');
+      $('curso').innerHTML = el + '<div class="row"><span class="k">Servicio en curso' + (vivos.length > 1 ? ' (+' + (vivos.length - 1) + ')' : '') + '</span>' + badge(s.etapa) + '</div>' +
+        '<div><div class="t">' + titulo(s) + (cap(s) ? ' · ' + esc(cap(s)) : '') + '</div><div class="s">' + (s.folio ? 'Folio ' + esc(s.folio) : '') + (fechaSv(s) ? ' · ' + esc(fechaSv(s)) : '') + '</div></div>' +
+        '<div class="bars" aria-hidden="true">' + bars + '</div>' + (s.token ? '</a>' : '</div>');
+    }
+    $('dot').hidden = !vivos.length;
+  }
+
+  function pintarServicios() {
+    var l = D.servicios.filter(function (s) { return FILTRO === 'todos' || (FILTRO === 'curso' ? activo(s) : !activo(s)); });
+    $('sv-sub').textContent = D.servicios.length + (D.servicios.length === 1 ? ' servicio' : ' servicios') + ' · ' + D.servicios.filter(activo).length + ' en curso';
+    $('sv-lista').innerHTML = l.length ? l.map(function (s) {
+      var inner = '<div class="row"><div><div class="t" style="font-size:16px">' + titulo(s) + '</div><div class="s">' + esc(cap(s)) + '</div></div>' + badge(s.etapa) + '</div>' +
+        '<div class="foot"><span>' + (s.folio ? esc(s.folio) : '') + (fechaSv(s) ? ' · ' + esc(fechaSv(s)) : '') + '</span>' + (s.token ? '<span style="color:var(--orange);font-weight:700">Ver seguimiento ›</span>' : '') + '</div>';
+      return s.token ? '<a class="item' + (activo(s) ? ' act' : '') + '" href="/s/' + encodeURIComponent(s.token) + '">' + inner + '</a>' : '<div class="item">' + inner + '</div>';
+    }).join('') : '<div class="empty">No hay servicios en esta lista.</div>';
+  }
+
+  function equipos() {
+    var m = {};
+    D.servicios.forEach(function (s) {
+      var k = s.serie ? 's:' + s.serie.toLowerCase() : 'p:' + (s.lugar || s.dir || 'sin ubicación').toLowerCase();
+      var e = m[k] || (m[k] = { serie: s.serie, lugar: s.lugar || s.dir, servicios: [] });
+      if (!e.lugar) e.lugar = s.lugar || s.dir;
+      e.servicios.push(s);
+    });
+    return Object.keys(m).map(function (k) { return m[k]; });
+  }
+  function pintarEquipos() {
+    var q = ($('eq-q').value || '').toLowerCase().trim();
+    var eq = equipos().filter(function (e) { return !q || (e.serie + ' ' + e.lugar).toLowerCase().indexOf(q) >= 0; });
+    var puntos = {}; equipos().forEach(function (e) { puntos[(e.lugar || '').toLowerCase()] = 1; });
+    $('eq-sub').textContent = equipos().length + (equipos().length === 1 ? ' equipo' : ' equipos') + ' en ' + Object.keys(puntos).length + (Object.keys(puntos).length === 1 ? ' punto de venta' : ' puntos de venta');
+    $('eq-lista').innerHTML = eq.length ? eq.map(function (e) {
+      var vivo = e.servicios.filter(activo)[0], ult = e.servicios.filter(function (s) { return !activo(s); })[0] || e.servicios[0];
+      var nombre = e.serie ? 'Equipo ' + esc(e.serie) : 'Equipo sin ID';
+      var foot = vivo ? esc((vivo.tipo || 'Servicio') + ' en curso' + (vivo.folio ? ' · ' + vivo.folio : '')) : 'Último servicio: ' + esc((ult.tipo || 'servicio') + (fechaSv(ult) ? ' · ' + fechaSv(ult) : ''));
+      var inner = '<div class="row"><div style="display:flex;align-items:center;gap:12px;min-width:0"><div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M5 10h14"/><path d="M8.5 6v1.5"/><path d="M8.5 13v3"/></svg></div><div style="min-width:0"><div class="t" style="font-size:16px">' + nombre + '</div><div class="s">' + esc(e.lugar || '') + '</div></div></div>' +
+        (vivo ? '<span class="badge">En servicio</span>' : '<span class="badge g">Sin servicios activos</span>') + '</div><div class="foot"><span>' + foot + '</span>' + (vivo && vivo.token ? '<span style="color:var(--orange)">›</span>' : '') + '</div>';
+      return vivo && vivo.token ? '<a class="item act" href="/s/' + encodeURIComponent(vivo.token) + '">' + inner + '</a>' : '<div class="item">' + inner + '</div>';
+    }).join('') : '<div class="empty">' + (q ? 'No encontramos ese equipo.' : 'Aún no hay equipos. Aparecen cuando pides tu primer servicio.') + '</div>';
+  }
+
+  function vista(v, push) {
+    VISTA = v;
+    ['inicio', 'servicios', 'equipos'].forEach(function (n) { var e = $('v-' + n); e.style.display = n === v ? 'flex' : 'none'; });
+    Array.prototype.forEach.call($('nb').querySelectorAll('a[data-v]'), function (a) { if (a.getAttribute('data-v') === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    if (push) { try { history.pushState(null, '', '/' + v); } catch (e) {} }
+    window.scrollTo(0, 0);
+    if (D) pintar();
+  }
+  function pintar() { if (VISTA === 'inicio') pintarInicio(); else if (VISTA === 'servicios') pintarServicios(); else pintarEquipos(); }
+
+  function cargar() {
+    if (!MGA.token()) { $('load').hidden = true; $('nb').hidden = true; ['inicio', 'servicios', 'equipos'].forEach(function (n) { $('v-' + n).style.display = 'none'; }); $('login').hidden = false; MGA.login($('login'), function () { $('login').hidden = true; $('load').hidden = false; cargar(); }); return; }
+    call().then(function (d) {
+      $('load').hidden = true;
+      if (d._status === 401) { MGA.clear(); return cargar(); }
+      if (!d.ok) { if (!D) { $('fail').hidden = false; $('fail').textContent = 'No se pudo cargar. Inténtalo de nuevo. (código: ' + (d.error || d._status) + ')'; } return; }
+      $('fail').hidden = true; D = d; $('nb').hidden = false; vista(VISTA, false);
+    }).catch(function () { $('load').hidden = true; if (!D) { $('fail').hidden = false; $('fail').textContent = 'Sin conexión. Revisa tu internet.'; } });
+  }
+
+  var p = location.pathname.replace(/\/$/, '').split('/')[1];
+  VISTA = p === 'servicios' || p === 'equipos' ? p : 'inicio';
+  $('nb').addEventListener('click', function (e) {
+    var a = e.target.closest('a[data-v]'); if (!a) return;
+    e.preventDefault(); vista(a.getAttribute('data-v'), true);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#v-inicio a[href="/servicios"], #v-inicio a[href="/equipos"], #bell'), function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); vista(a.getAttribute('href').slice(1), true); });
+  });
+  window.addEventListener('popstate', function () { var q = location.pathname.split('/')[1]; vista(q === 'servicios' || q === 'equipos' ? q : 'inicio', false); });
+  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
+    c.addEventListener('click', function () { FILTRO = c.getAttribute('data-f'); Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); }); pintarServicios(); });
+  });
+  $('eq-q').addEventListener('input', pintarEquipos);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && D) cargar(); });
+  timer = setInterval(function () { if (document.visibilityState === 'visible' && D) cargar(); }, 60000);
+  cargar();
+})();
+</script>
+</body>
+</html>

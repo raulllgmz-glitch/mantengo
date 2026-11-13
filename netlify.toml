@@ -110,3 +110,28 @@
   to = "/m.html"
   status = 200
   force = true
+
+# Portal del cliente: inicio, servicios y equipos (una sola página)
+[[redirects]]
+  from = "/api/cliente"
+  to = "/.netlify/functions/cliente"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/inicio"
+  to = "/app.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/servicios"
+  to = "/app.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/equipos"
+  to = "/app.html"
+  status = 200
+  force = true

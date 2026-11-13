@@ -213,3 +213,9 @@ En `/n` el campo Dirección usa Google Places Autocomplete (México): al elegir 
 que se puede seguir moviendo. Variable en Netlify: `GOOGLE_MAPS_KEY` (clave propia de este proyecto, con restricción de
 referencia HTTP a `mantengo.netlify.app/*` y solo las APIs Maps JavaScript y Places). La clave solo se entrega a sesiones válidas
 y nunca va en el repositorio. Sin la variable, el campo funciona como texto normal.
+
+## 16. Portal del cliente (`/inicio`)
+
+Pantalla principal tras entrar con teléfono + PIN, según el diseño: Inicio (solicitar, servicio en curso, equipos, servicios, carga masiva,
+WhatsApp), Mis servicios (filtros y liga al seguimiento) y Mis equipos (agrupados por `Serie`; sin serie, por establecimiento).
+Rutas `/inicio`, `/servicios`, `/equipos` → `app.html`; datos de `/api/cliente` (solo lectura, con sesión). Esta es la liga principal.
