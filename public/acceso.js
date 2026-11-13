@@ -38,7 +38,7 @@
         post({ action: 'pedir', tel: tel }).then(function (r) {
           if (r.ok) { ls(TEL, tel); return paso2(r.prueba ? 'Modo de prueba: no se mandó SMS. Escribe el PIN de prueba.' : ''); }
           b.disabled = false; b.textContent = 'Enviarme el PIN';
-          e.textContent = r._status === 429 ? 'Ya te mandamos un PIN. Espera un momento antes de pedir otro.' : 'No pudimos enviar el PIN. Inténtalo de nuevo.';
+          e.textContent = r._status === 429 ? 'Ya te mandamos un PIN. Espera un momento antes de pedir otro.' : 'No pudimos enviar el PIN. Inténtalo de nuevo.' + (r.error ? ' (código: ' + r.error + ')' : ' (código: ' + r._status + ')');
         }).catch(function () { b.disabled = false; b.textContent = 'Enviarme el PIN'; e.textContent = 'Sin conexión. Revisa tu internet.'; });
       }
       b.addEventListener('click', enviar);
