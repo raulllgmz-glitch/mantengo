@@ -206,3 +206,10 @@ usarla según el campo `Roll` de Conactos. Requiere `exceljs` (se instala solo e
 Modo prueba del acceso: `OTP_PIN_PRUEBA=1234` (4 a 8 dígitos) en Netlify permite entrar sin Twilio con ese PIN fijo, solo con teléfonos
 registrados en Conactos. Quitar la variable (y redeploy) para volver al PIN real por SMS.
 PIN por contacto: columna `PIN` (texto, 4 a 8 dígitos) en Conactos. Si está llena, ese contacto entra con ese PIN y no se manda SMS.
+
+## 15. Buscador de direcciones (Google Places)
+
+En `/n` el campo Dirección usa Google Places Autocomplete (México): al elegir una sugerencia llena la dirección y pone el pin,
+que se puede seguir moviendo. Variable en Netlify: `GOOGLE_MAPS_KEY` (clave propia de este proyecto, con restricción de
+referencia HTTP a `mantengo.netlify.app/*` y solo las APIs Maps JavaScript y Places). La clave solo se entrega a sesiones válidas
+y nunca va en el repositorio. Sin la variable, el campo funciona como texto normal.

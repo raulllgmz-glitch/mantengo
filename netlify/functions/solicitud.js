@@ -238,7 +238,8 @@ exports.handler = async (event) => {
 
     if (action === 'info') {
       const recs = await serviciosDe(marca);
-      return reply(200, { ok: true, nombre, tipos: TIPOS, recientes: recientes(recs) });
+      const gkey = /^[A-Za-z0-9_-]{20,80}$/.test(process.env.GOOGLE_MAPS_KEY || '') ? process.env.GOOGLE_MAPS_KEY : '';
+      return reply(200, { ok: true, nombre, tipos: TIPOS, recientes: recientes(recs), gkey });
     }
 
     if (action === 'crear') {

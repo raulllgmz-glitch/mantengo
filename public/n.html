@@ -55,6 +55,10 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
 .folio{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
 .k{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--orange)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.pac-container{background:#16262F;border:1px solid #2A3E4D;border-radius:14px;margin-top:6px;box-shadow:0 10px 30px rgba(0,0,0,.5);font-family:Inter,system-ui,sans-serif;z-index:10000}
+.pac-item{color:#A9B8C3;border-top:1px solid #2A3E4D;padding:10px 14px;font-size:14px;cursor:pointer}
+.pac-item:first-child{border-top:0}.pac-item:hover,.pac-item-selected{background:rgba(245,166,35,.12)}
+.pac-item-query{color:#fff;font-size:15px}.pac-icon{display:none}.pac-logo:after{filter:invert(1) brightness(1.2)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -75,6 +79,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
       <div>
         <h1>Solicitar servicio</h1>
         <div class="sub" id="para"></div>
+        <a class="sub" href="/m" style="display:inline-block;margin-top:6px;color:var(--orange);font-weight:700;text-decoration:none">¿Muchos servicios? Carga masiva con Excel →</a>
       </div>
 
       <div class="sec" role="group" aria-labelledby="t1">
@@ -160,6 +165,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     <a class="btn" id="dver" href="#" style="margin-top:14px">Ver seguimiento</a>
     <a class="btn sec2" id="dwa" href="#" target="_blank" rel="noopener" style="margin-top:10px">Compartir por WhatsApp</a>
     <button class="btn sec2" id="dnew" type="button" style="margin-top:10px">Hacer otra solicitud</button>
+    <a class="btn sec2" href="/m" style="margin-top:10px">Carga masiva con Excel</a>
   </section>
 </main>
 
@@ -199,6 +205,7 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
     $('para').textContent = d.nombre ? 'Para ' + d.nombre : '';
     buildTipos(d.tipos || []);
     buildRecientes(d.recientes || []);
+    cargarGoogle(d.gkey);
     $('contacto').value = lsGet('mg_n_contacto');
     $('tel').value = lsGet('mg_n_tel');
     show('form', true);
@@ -239,6 +246,29 @@ input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px soli
   }
 
   /* ---------- mapa ---------- */
+
+  /* ---------- buscador de direcciones (Google Places) ---------- */
+  function cargarGoogle(key) {
+    if (!key || window.google) return;
+    window.__gListo = function () {
+      try {
+        var ac = new google.maps.places.Autocomplete($('dir'), { fields: ['geometry', 'name', 'formatted_address'], componentRestrictions: { country: 'mx' } });
+        ac.addListener('place_changed', function () {
+          var p = ac.getPlace();
+          if (!p || !p.geometry || !p.geometry.location) return;
+          var txt = p.formatted_address || p.name || '';
+          if (p.name && txt.indexOf(p.name) !== 0 && !/^[0-9]/.test(p.name)) txt = p.name + ', ' + txt;
+          $('dir').value = txt.slice(0, 200);
+          setPin(p.geometry.location.lat(), p.geometry.location.lng(), true);
+        });
+        $('dir').placeholder = 'Escribe y elige la dirección';
+        $('dir').setAttribute('autocomplete', 'off');
+      } catch (e) { /* si falla, se escribe a mano y se pone el pin */ }
+    };
+    var sc = document.createElement('script');
+    sc.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&libraries=places&language=es&region=MX&callback=__gListo';
+    sc.async = true; document.head.appendChild(sc);
+  }
   function initMap() {
     if (!window.L) { $('map').innerHTML = '<p class="small" style="padding:14px">El mapa no está disponible. Escribe la dirección y listo.</p>'; return; }
     map = L.map('map', { zoomControl: true, attributionControl: true }).setView([20.5888, -100.3899], 12);
