@@ -136,8 +136,8 @@ input[type=file]::file-selector-button{margin-right:12px;padding:10px 16px;borde
   function mostrar(d) {
     var malas = d.total - d.buenas;
     $('resumen').innerHTML = '<span class="tag">' + d.total + ' filas</span><span class="tag g">' + d.buenas + ' listas</span>' + (malas ? '<span class="tag r">' + malas + ' con error</span>' : '');
-    $('lista').innerHTML = filas.filter(function (f) { return !f.ok || f.avisos.length; }).map(function (f) {
-      return '<div class="fila"><b><span class="n">Fila ' + f.fila + '</span>' + esc(f.datos.lugar || '(sin establecimiento)') + '</b>' +
+    $('lista').innerHTML = filas.map(function (f) {
+      return '<div class="fila"><b><span class="n">Fila ' + f.fila + '</span>' + esc(f.datos.lugar || '(sin establecimiento)') + (f.ok && !f.avisos.length ? ' <span style="color:var(--ok)">✓</span>' : '') + '</b>' +
         f.errores.map(function (t) { return '<div class="e">' + esc(t) + '</div>'; }).join('') +
         f.avisos.map(function (t) { return '<div class="a">' + esc(t) + '</div>'; }).join('') + '</div>';
     }).join('');

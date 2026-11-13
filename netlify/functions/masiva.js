@@ -40,7 +40,8 @@ const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 
 // ---------- ubicación: coordenadas o link de Google Maps ----------
 function coordsDeLink(u) {
-  const s = decodeURIComponent(String(u || ''));
+  let s = String(u || '');
+  try { s = decodeURIComponent(s); } catch (e) { /* texto con % sueltos */ }
   const pats = [/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/, /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
     /[?&](?:q|ll|query|destination|center)=(-?\d{1,3}\.\d+)[, +]+(-?\d{1,3}\.\d+)/];
   for (const re of pats) {
@@ -71,9 +72,13 @@ async function resolverLink(url, fin) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 3000);
     try {
-      const r = await fetch(u, { redirect: 'manual', signal: ctl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const r = await fetch(u, { redirect: 'manual', signal: ctl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15', 'Accept-Language': 'es-MX,es;q=0.9' } });
       const loc = r.headers.get('location');
-      if (!loc) return null;
+      if (!loc) {
+        // Sin redirección: las coordenadas suelen venir dentro de la propia página.
+        const txt = (await r.text()).slice(0, 600000);
+        return coordsDeLink(txt) || coordsDeLink(txt.replace(/\\u003d/g, '=').replace(/\\u0026/g, '&'));
+      }
       u = new URL(loc, u).toString();
     } catch (e) {
       return null;
