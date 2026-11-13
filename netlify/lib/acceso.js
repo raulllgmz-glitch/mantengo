@@ -6,7 +6,7 @@ const crypto = require('crypto');
 
 const AT_BASE = process.env.AIRTABLE_BASE_ID || 'appqjYUAGBRIh6RHX';
 const AT_CONTACTOS = process.env.AIRTABLE_CONTACTOS_TABLE || 'tblhCXgQRYrfjvDRN';
-const C = { nombre: 'Nombre', tel: 'Teléfono', marca: 'Marca', activo: 'Activo', rol: 'Roll' };
+const C = { nombre: 'Nombre', tel: 'Teléfono', marca: 'Marca', activo: 'Activo', rol: 'Roll', pin: 'PIN' };
 const REC_RE = /^rec[A-Za-z0-9]{14}$/;
 const DIAS = Number(process.env.SESION_DIAS) || 30;
 
@@ -57,14 +57,17 @@ async function at(key, path, params) {
 // Contacto registrado por teléfono (activo y con marca). null si no existe.
 async function contactoPorTel(key, tel10) {
   const formula = `AND({${C.activo}},RIGHT(REGEX_REPLACE({${C.tel}}&'','[^0-9]',''),10)='${tel10}')`;
-  const d = await at(key, encodeURIComponent(AT_CONTACTOS), {
-    filterByFormula: formula,
-    maxRecords: '1',
-    'fields[]': [C.nombre, C.tel, C.marca, C.activo, C.rol]
-  });
+  const pedir = (campos) => at(key, encodeURIComponent(AT_CONTACTOS), { filterByFormula: formula, maxRecords: '1', 'fields[]': campos });
+  let d;
+  try {
+    d = await pedir([C.nombre, C.tel, C.marca, C.activo, C.rol, C.pin]);
+  } catch (e) {
+    if (e.status !== 422) throw e; // aún no existe la columna PIN en Conactos
+    d = await pedir([C.nombre, C.tel, C.marca, C.activo, C.rol]);
+  }
   const r = d && d.records && d.records[0];
   const m = r && (r.fields[C.marca] || [])[0];
-  return r && REC_RE.test(m || '') ? { id: r.id, nombre: String(r.fields[C.nombre] || '').slice(0, 80), marca: m, rol: String(r.fields[C.rol] || '') } : null;
+  return r && REC_RE.test(m || '') ? { id: r.id, nombre: String(r.fields[C.nombre] || '').slice(0, 80), marca: m, rol: String(r.fields[C.rol] || ''), pin: /^\d{4,8}$/.test(String(r.fields[C.pin] || '').trim()) ? String(r.fields[C.pin]).trim() : '' } : null;
 }
 
 // Sesión → { contacto, marca (registro con los campos pedidos) } o null si ya no vale.

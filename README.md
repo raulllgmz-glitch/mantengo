@@ -202,3 +202,7 @@ Plantilla de Excel por marca (marca y "cargado por" bloqueados, tipo de servicio
 y creación en lotes de 10. Máximo 200 filas por carga. La marca, `Contacto User` y `Tel User` salen siempre de la sesión.
 Acepta dirección, coordenadas o link de Google Maps. Opcional: `MASIVA_ROLES` (ej. `Admin,Coordinador`) limita quién puede
 usarla según el campo `Roll` de Conactos. Requiere `exceljs` (se instala solo en el deploy de Netlify).
+
+Modo prueba del acceso: `OTP_PIN_PRUEBA=1234` (4 a 8 dígitos) en Netlify permite entrar sin Twilio con ese PIN fijo, solo con teléfonos
+registrados en Conactos. Quitar la variable (y redeploy) para volver al PIN real por SMS.
+PIN por contacto: columna `PIN` (texto, 4 a 8 dígitos) en Conactos. Si está llena, ese contacto entra con ese PIN y no se manda SMS.

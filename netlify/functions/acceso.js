@@ -7,6 +7,9 @@
 //
 // Variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SID, SESSION_SECRET,
 //            OTP_CHANNEL (sms | whatsapp, por defecto sms), AIRTABLE_TOKEN.
+// PIN por contacto: si en Conactos el contacto tiene la columna PIN llena (4 a 8 dígitos), no se manda SMS y entra con ese PIN.
+// Modo prueba: con OTP_PIN_PRUEBA=1234 (4 a 8 dígitos) no se manda SMS y ese PIN fijo entra a cualquier teléfono
+// registrado en Contactos. Solo para probar la experiencia: se quita la variable y vuelve al PIN real.
 
 const A = require('../lib/acceso');
 
@@ -54,8 +57,9 @@ exports.handler = async (event) => {
     }
     if (oh !== host) return reply(403, { error: 'origen' });
   }
-  if (!key() || !process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_VERIFY_SID ||
-      String(process.env.SESSION_SECRET || '').length < 24) {
+  const pruebaPin = /^\d{4,8}$/.test(String(process.env.OTP_PIN_PRUEBA || '')) ? String(process.env.OTP_PIN_PRUEBA) : '';
+  const twilioListo = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SID;
+  if (!key() || String(process.env.SESSION_SECRET || '').length < 24) {
     return reply(503, { error: 'config' });
   }
   if (String(event.body || '').length > 500) return reply(413, { error: 'tamano' });
@@ -77,6 +81,8 @@ exports.handler = async (event) => {
         await wait(700); // misma espera que cuando sí se manda, para no delatar qué teléfonos existen
         return reply(200, { ok: true });
       }
+      if (contacto.pin || pruebaPin) return reply(200, { ok: true, prueba: true });
+      if (!twilioListo) return reply(503, { error: 'config' });
       const r = await twilio('Verifications', { To: `+52${tel}`, Channel: canal });
       if (r.status === 429) return reply(429, { error: 'espera' });
       if (r.status >= 300) {
@@ -93,9 +99,19 @@ exports.handler = async (event) => {
         await wait(700);
         return reply(401, { error: 'pin' });
       }
-      const r = await twilio('VerificationCheck', { To: `+52${tel}`, Code: pin });
-      if (r.status === 429) return reply(429, { error: 'espera' });
-      if (r.status !== 200 || !r.body || r.body.status !== 'approved') {
+      let aprobado;
+      const fijo = contacto.pin || pruebaPin;
+      if (fijo) {
+        const a = Buffer.from(pin);
+        const c = Buffer.from(fijo);
+        aprobado = a.length === c.length && require('crypto').timingSafeEqual(a, c);
+      } else {
+        if (!twilioListo) return reply(503, { error: 'config' });
+        const r = await twilio('VerificationCheck', { To: `+52${tel}`, Code: pin });
+        if (r.status === 429) return reply(429, { error: 'espera' });
+        aprobado = r.status === 200 && r.body && r.body.status === 'approved';
+      }
+      if (!aprobado) {
         await wait(400);
         return reply(401, { error: 'pin' });
       }
