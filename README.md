@@ -226,3 +226,6 @@ Al subir el Excel, cada fila aparece como una ficha con todos sus campos editabl
 ### Cambios en solicitud (`/n`)
 - Se quitó "Tus tiendas recientes".
 - La fecha ahora es un solo selector con mínimo mañana (hora CDMX), ya preseleccionado en mañana. El servidor también rechaza fechas anteriores a mañana (los valores viejos "hoy"/"manana" se guardan como mañana).
+
+### Vista de escritorio (portal)
+≥960 px: menú lateral izquierdo, tablero en inicio (CTA, servicio en curso, 4 indicadores, lista de servicios en curso) y cuadrículas de 2–4 columnas en Servicios/Equipos. En celular no cambia.

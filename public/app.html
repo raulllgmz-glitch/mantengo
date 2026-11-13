@@ -57,10 +57,50 @@ h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.1
 nav.nb{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#0B151D;border-top:1px solid #1E3040;padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
 nav.nb a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:54px;color:#9FB0BC;font-size:11px;font-weight:600}
 nav.nb a[aria-current="page"]{color:var(--orange);font-weight:700}
+
+.dsk{display:none}
+@media (min-width:960px){
+.dsk{display:block}
+body{min-height:100vh;background:radial-gradient(1200px 500px at 70% -10%,#16303f 0,transparent 60%) fixed,var(--bg)}
+.wrap{max-width:1180px;margin:0 0 0 232px;padding:36px 48px 60px;gap:24px}
+.logo{width:170px}
+nav.nb{top:0;right:auto;bottom:0;width:232px;grid-template-columns:1fr;grid-auto-rows:min-content;align-content:start;gap:4px;padding:96px 14px 20px;border-top:0;border-right:1px solid #1E3040}
+nav.nb a{flex-direction:row;justify-content:flex-start;gap:12px;min-height:46px;padding:0 14px;border-radius:12px;font-size:15px}
+nav.nb a:hover{background:#142431;color:#fff}
+nav.nb a[aria-current="page"]{background:rgba(245,166,35,.12)}
+.sidelogo{position:fixed;left:0;top:0;width:232px;height:84px;display:flex;align-items:center;padding:0 24px;z-index:2}
+.sidelogo img{width:160px;height:34px;object-fit:contain;object-position:left center}
+.top .logo{display:none}.top{justify-content:flex-end}
+h1{font-size:34px}.hi{font-size:15px}
+#v-inicio{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px!important;align-items:stretch}
+#v-inicio[style*="none"]{display:none!important}
+#v-inicio>div:first-child{grid-column:1/-1}
+#v-inicio .cta{grid-column:1/8;padding:28px}
+#v-inicio .cta b{font-size:24px}#v-inicio .cta span{font-size:15px}
+#v-inicio #curso{grid-column:8/-1;grid-row:2/4;display:flex}#v-inicio #curso>.card{flex:1;justify-content:center}
+#v-inicio .grid{grid-column:1/8;grid-template-columns:repeat(2,minmax(0,1fr))}
+#v-inicio .grid+.tile,#v-inicio>a.tile[href="/m"]{grid-column:1/8}
+#v-inicio .wa{grid-column:8/-1;height:100%;min-height:64px;border-radius:20px}
+.kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.kpi{padding:18px 20px;border-radius:20px;background:var(--card)}
+.kpi b{display:block;font-size:34px;font-weight:800;line-height:1.1}.kpi span{font-size:13px;color:var(--muted)}
+.kpi.o b{color:var(--orange)}.kpi.g b{color:var(--ok)}
+.lst{grid-column:1/-1}
+.lst h2{margin:0 0 12px;font-size:18px}
+.lst .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#sv-lista,#eq-lista{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px!important}
+#sv-lista .empty,#eq-lista .empty{grid-column:1/-1}
+.head b{font-size:30px}.head span{font-size:14px}
+.item{transition:transform .15s,border-color .15s}.item:hover{transform:translateY(-2px)}
+.search{max-width:460px}
+}
+@media (min-width:1500px){#sv-lista,#eq-lista,.lst .cols{grid-template-columns:repeat(4,minmax(0,1fr))}.wrap{max-width:1400px}}
+@media (min-width:960px) and (max-width:1199px){#sv-lista,#eq-lista,.lst .cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
+<div class="sidelogo dsk"><img src="/assets/logo.png" alt="MantenGO"></div>
 <main class="wrap" id="main">
   <div class="top">
     <img class="logo" src="/assets/logo.png" alt="MantenGO" width="357" height="76">
@@ -81,6 +121,8 @@ nav.nb a[aria-current="page"]{color:var(--orange);font-weight:700}
     </div>
     <a class="tile" href="/m" style="flex-direction:row;align-items:center;gap:14px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9 14l3 3 3-3"/></svg><div><b>Carga masiva</b><span>Varios servicios a la vez con una plantilla de Excel</span></div></a>
     <a class="wa" href="https://wa.me/524424501585" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"/></svg>Cotizar por WhatsApp</a>
+    <div class="kpis dsk" id="kpis"></div>
+    <div class="lst dsk" id="lst"></div>
   </section>
 
   <section id="v-servicios" style="display:none;flex-direction:column;gap:14px">
@@ -153,6 +195,13 @@ nav.nb a[aria-current="page"]{color:var(--orange);font-weight:700}
         '<div class="bars" aria-hidden="true">' + bars + '</div>' + (s.token ? '</a>' : '</div>');
     }
     $('dot').hidden = !vivos.length;
+
+    var K = D.servicios, term = K.filter(function (x) { return !activo(x); }).length, eqn = equipos().length;
+    $('kpis').innerHTML = [['o', vivos.length, 'En curso'], ['', K.length, 'Servicios en total'], ['g', term, 'Terminados'], ['', eqn, 'Equipos']].map(function (k) { return '<div class="kpi ' + k[0] + '"><b>' + k[1] + '</b><span>' + k[2] + '</span></div>'; }).join('');
+    $('lst').innerHTML = vivos.length ? '<h2>Servicios en curso</h2><div class="cols">' + vivos.slice(0, 8).map(function (x) {
+      var inn = '<div class="row"><div><div class="t" style="font-size:16px">' + titulo(x) + '</div><div class="s">' + esc(cap(x)) + '</div></div>' + badge(x.etapa) + '</div><div class="foot"><span>' + (x.folio ? esc(x.folio) : '') + (fechaSv(x) ? ' · ' + esc(fechaSv(x)) : '') + '</span>' + (x.token ? '<span style="color:var(--orange);font-weight:700">Ver seguimiento ›</span>' : '') + '</div>';
+      return x.token ? '<a class="item act" href="/s/' + encodeURIComponent(x.token) + '">' + inn + '</a>' : '<div class="item act">' + inn + '</div>';
+    }).join('') + '</div>' : '';
   }
 
   function pintarServicios() {
