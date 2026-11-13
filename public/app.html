@@ -96,7 +96,33 @@ h1{font-size:34px}.hi{font-size:15px}
 }
 @media (min-width:1500px){#sv-lista,#eq-lista,.lst .cols{grid-template-columns:repeat(4,minmax(0,1fr))}.wrap{max-width:1400px}}
 @media (min-width:960px) and (max-width:1199px){#sv-lista,#eq-lista,.lst .cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
-[hidden]{display:none!important}
+
+.tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+.seg button{height:34px;padding:0 14px;border:0;border-radius:9px;background:transparent;color:#C5D1DA;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:rgba(245,166,35,.18);color:#fff;font-weight:700}
+.xl{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:12px;border:1.5px solid #2F4455;background:transparent;color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.xl:hover{border-color:var(--orange)}.xl[disabled]{opacity:.6;cursor:wait}
+.tw{overflow-x:auto;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+table.tb{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
+.tb th{position:sticky;top:0;text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 14px;background:#12212B;border-bottom:1px solid var(--line);white-space:nowrap}
+.tb td{padding:12px 14px;border-bottom:1px solid #1E3040;vertical-align:middle}
+.tb tr:last-child td{border-bottom:0}
+.tb tbody tr{cursor:pointer}.tb tbody tr:hover td{background:#1A2E3A}
+.tb .f{font-weight:700;white-space:nowrap}.tb .m{color:var(--muted);font-size:13px}
+.fl{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fl label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);flex:1 1 140px;min-width:0}
+.fl select,.fl input{height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:#fff;font:inherit;font-size:14px;font-weight:500;letter-spacing:0;text-transform:none;padding:0 10px;min-width:0;color-scheme:dark}
+.fl select:focus,.fl input:focus{outline:2px solid var(--orange);outline-offset:1px}
+.lim{height:42px;padding:0 14px;border:0;background:none;color:var(--orange);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+@media (min-width:960px){.fl label{flex:0 1 200px}}
+#mapa{height:min(62vh,620px);min-height:380px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0B151D}
+#mapa .leaflet-tile-pane{filter:invert(100%) hue-rotate(180deg) brightness(92%) contrast(88%) saturate(70%)}
+.leaflet-popup-content-wrapper{background:var(--card);color:#fff;border-radius:14px}.leaflet-popup-tip{background:var(--card)}
+.leaflet-popup-content{margin:12px 14px;font-family:inherit}.leaflet-popup-content a{color:var(--orange);font-weight:700}
+.pn{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #0F1B24;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.leyenda i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+[hidden],#sv-lista[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -132,7 +158,19 @@ h1{font-size:34px}.hi{font-size:15px}
       <button class="chip" type="button" data-f="curso" aria-pressed="false">En curso</button>
       <button class="chip" type="button" data-f="fin" aria-pressed="false">Terminados</button>
     </div>
+    <div class="fl" id="fl">
+      <label>Tipo de servicio<select id="f-tipo"><option value="">Todos</option></select></label>
+      <label>Desde<input type="date" id="f-desde"></label>
+      <label>Hasta<input type="date" id="f-hasta"></label>
+      <button type="button" class="lim" id="f-lim" hidden>Limpiar filtros</button>
+    </div>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Tipo de vista"><button type="button" data-m="tarjetas" aria-pressed="true">Tarjetas</button><button type="button" data-m="tabla" aria-pressed="false">Tabla</button><button type="button" data-m="mapa" aria-pressed="false">Mapa</button></div>
+      <button class="xl" type="button" id="xl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg><span id="xl-t">Descargar Excel</span></button>
+    </div>
     <div id="sv-lista" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div id="sv-tabla" class="tw" hidden></div>
+    <div id="sv-mapa" hidden><div id="mapa"></div><div class="leyenda" id="leyenda" style="margin-top:10px"></div></div>
   </section>
 
   <section id="v-equipos" style="display:none;flex-direction:column;gap:14px">
@@ -205,14 +243,93 @@ h1{font-size:34px}.hi{font-size:15px}
   }
 
   function pintarServicios() {
-    var l = D.servicios.filter(function (s) { return FILTRO === 'todos' || (FILTRO === 'curso' ? activo(s) : !activo(s)); });
-    $('sv-sub').textContent = D.servicios.length + (D.servicios.length === 1 ? ' servicio' : ' servicios') + ' · ' + D.servicios.filter(activo).length + ' en curso';
+    llenarTipos(); var l = filtrados(); $('f-lim').hidden = !filtrosActivos();
+    $('sv-sub').textContent = D.servicios.length + (D.servicios.length === 1 ? ' servicio' : ' servicios') + ' · ' + D.servicios.filter(activo).length + ' en curso' + (l.length !== D.servicios.length ? ' · mostrando ' + l.length : '');
     $('sv-lista').innerHTML = l.length ? l.map(function (s) {
       var inner = '<div class="row"><div><div class="t" style="font-size:16px">' + titulo(s) + '</div><div class="s">' + esc(cap(s)) + '</div></div>' + badge(s.etapa) + '</div>' +
         '<div class="foot"><span>' + (s.folio ? esc(s.folio) : '') + (fechaSv(s) ? ' · ' + esc(fechaSv(s)) : '') + '</span>' + (s.token ? '<span style="color:var(--orange);font-weight:700">Ver seguimiento ›</span>' : '') + '</div>';
       return s.token ? '<a class="item' + (activo(s) ? ' act' : '') + '" href="/s/' + encodeURIComponent(s.token) + '">' + inner + '</a>' : '<div class="item">' + inner + '</div>';
     }).join('') : '<div class="empty">No hay servicios en esta lista.</div>';
+    if (MODO === 'tabla') pintarTabla(); else if (MODO === 'mapa') pintarMapa();
   }
+
+
+  var MODO = 'tarjetas', MAPA = null, CAPA = null, LEAF = null;
+  var COLOR = { 'Recibido': '#9FB0BC', 'Programado': '#F5A623', 'En camino': '#4FC3F7', 'En proceso': '#B388FF', 'Terminado': '#7FD6A5' };
+  function refDia(s) { var v = (s.etapa === 'Terminado' && s.cierre) || s.prog || s.sol || s.creado; return v ? (/^\d{4}-\d{2}-\d{2}$/.test(v) ? v : dia(v)) : ''; }
+  function filtrados() {
+    var ft = $('f-tipo').value, d1 = $('f-desde').value, d2 = $('f-hasta').value;
+    return D.servicios.filter(function (s) {
+      if (!(FILTRO === 'todos' || (FILTRO === 'curso' ? activo(s) : !activo(s)))) return false;
+      if (ft && s.tipo !== ft) return false;
+      var r = refDia(s); if (d1 && (!r || r < d1)) return false; if (d2 && (!r || r > d2)) return false;
+      return true;
+    });
+  }
+  function filtrosActivos() { return !!($('f-tipo').value || $('f-desde').value || $('f-hasta').value); }
+  function llenarTipos() {
+    var sel = $('f-tipo'), cur = sel.value, ts = {}; D.servicios.forEach(function (s) { if (s.tipo) ts[s.tipo] = 1; });
+    sel.innerHTML = '<option value="">Todos</option>' + Object.keys(ts).sort().map(function (t) { return '<option' + (t === cur ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('');
+  }
+  function pintarTabla() {
+    var l = filtrados();
+    $('sv-tabla').innerHTML = l.length ? '<table class="tb"><thead><tr><th>Folio</th><th>Servicio</th><th>Establecimiento</th><th>Etapa</th><th>Fecha</th><th>Equipo</th><th>Contacto</th></tr></thead><tbody>' + l.map(function (s) {
+      return '<tr' + (s.token ? ' data-t="' + esc(s.token) + '"' : '') + '><td class="f">' + esc(s.folio) + '</td><td>' + esc(s.tipo) + '</td><td>' + esc(s.lugar) + (s.dir ? '<div class="m">' + esc(s.dir) + '</div>' : '') + '</td><td>' + badge(s.etapa) + '</td><td>' + esc(fechaSv(s)) + '</td><td>' + esc(s.serie || '—') + '</td><td>' + esc(s.contacto || '—') + '</td></tr>';
+    }).join('') + '</tbody></table>' : '<div class="empty">No hay servicios en esta lista.</div>';
+  }
+  function cargarLeaflet(cb) {
+    if (window.L) return cb();
+    if (LEAF) return LEAF.push(cb);
+    LEAF = [cb];
+    var c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; c.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='; c.crossOrigin = ''; document.head.appendChild(c);
+    var j = document.createElement('script'); j.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; j.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='; j.crossOrigin = '';
+    j.onload = function () { var q = LEAF; LEAF = null; q.forEach(function (f) { f(); }); };
+    j.onerror = function () { LEAF = null; $('leyenda').textContent = 'No se pudo cargar el mapa. Revisa tu internet.'; };
+    document.head.appendChild(j);
+  }
+  function pintarMapa() {
+    cargarLeaflet(function () {
+      if (!MAPA) {
+        MAPA = L.map('mapa', { zoomControl: true }).setView([23.6, -102.5], 5);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(MAPA);
+        CAPA = L.layerGroup().addTo(MAPA);
+      }
+      MAPA.invalidateSize(); CAPA.clearLayers();
+      var l = filtrados(), con = l.filter(function (s) { return s.lat != null && s.lon != null; }), pts = [];
+      con.forEach(function (s) {
+        var ic = L.divIcon({ className: '', html: '<div class="pn" style="background:' + (COLOR[s.etapa] || '#9FB0BC') + '"></div>', iconSize: [22, 22], iconAnchor: [11, 22], popupAnchor: [0, -22] });
+        var pop = '<b>' + esc(s.tipo) + '</b><br>' + esc(s.lugar) + '<br><span style="color:#A9B8C3;font-size:12px">' + esc(s.folio) + ' · ' + esc(s.etapa) + (fechaSv(s) ? ' · ' + esc(fechaSv(s)) : '') + '</span>' + (s.token ? '<br><a href="/s/' + encodeURIComponent(s.token) + '">Ver seguimiento ›</a>' : '');
+        L.marker([s.lat, s.lon], { icon: ic }).bindPopup(pop).addTo(CAPA); pts.push([s.lat, s.lon]);
+      });
+      if (pts.length) MAPA.fitBounds(pts, { padding: [40, 40], maxZoom: 15 });
+      var vistos = {}; l.forEach(function (s) { vistos[s.etapa] = 1; });
+      $('leyenda').innerHTML = Object.keys(vistos).map(function (e) { return '<span><i style="background:' + (COLOR[e] || '#9FB0BC') + '"></i>' + esc(e) + '</span>'; }).join('') +
+        (l.length - con.length ? '<span>' + (l.length - con.length) + ' sin coordenadas (no se muestran)</span>' : '') + (!l.length ? '<span>No hay servicios en esta lista.</span>' : '');
+    });
+  }
+  function modo(m) {
+    MODO = m;
+    Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-m') === m ? 'true' : 'false'); });
+    $('sv-lista').hidden = m !== 'tarjetas';
+    $('sv-tabla').hidden = m !== 'tabla'; $('sv-mapa').hidden = m !== 'mapa';
+    if (m === 'tabla') pintarTabla(); else if (m === 'mapa') pintarMapa();
+  }
+  function descargar() {
+    var b = $('xl'); if (b.disabled) return; b.disabled = true; $('xl-t').textContent = 'Preparando…';
+    fetch('/api/cliente', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sesion: MGA.token(), action: 'excel', filtro: FILTRO, tipo: $('f-tipo').value, desde: $('f-desde').value, hasta: $('f-hasta').value }) })
+      .then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) throw new Error('x');
+        var bin = atob(d.b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+        var url = URL.createObjectURL(new Blob([u], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        var a = document.createElement('a'); a.href = url; a.download = d.nombre || 'servicios.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        $('xl-t').textContent = 'Descargar Excel';
+      }).catch(function () { $('xl-t').textContent = 'No se pudo. Reintentar'; }).then(function () { b.disabled = false; });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (b) { b.addEventListener('click', function () { modo(b.getAttribute('data-m')); }); });
+  $('xl').addEventListener('click', descargar);
+  ['f-tipo', 'f-desde', 'f-hasta'].forEach(function (id) { $(id).addEventListener('change', pintarServicios); });
+  $('f-lim').addEventListener('click', function () { ['f-tipo', 'f-desde', 'f-hasta'].forEach(function (id) { $(id).value = ''; }); pintarServicios(); });
+  $('sv-tabla').addEventListener('click', function (e) { var r = e.target.closest('tr[data-t]'); if (r) location.href = '/s/' + encodeURIComponent(r.getAttribute('data-t')); });
 
   function equipos() {
     var m = {};

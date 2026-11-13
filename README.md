@@ -229,3 +229,8 @@ Al subir el Excel, cada fila aparece como una ficha con todos sus campos editabl
 
 ### Vista de escritorio (portal)
 ≥960 px: menú lateral izquierdo, tablero en inicio (CTA, servicio en curso, 4 indicadores, lista de servicios en curso) y cuadrículas de 2–4 columnas en Servicios/Equipos. En celular no cambia.
+
+### Servicios: tarjetas / tabla / mapa + Excel
+En `/servicios` hay selector de vista (Tarjetas, Tabla, Mapa) que respeta el filtro Todos/En curso/Terminados. El mapa usa la columna `Coordenadas` de Servicios (pines por etapa; los que no tienen coordenadas se avisan). "Descargar Excel" llama a `/api/cliente` con `action:'excel'` y genera el .xlsx en el servidor (solo servicios de la marca de la sesión).
+
+Filtros en `/servicios`: tipo de servicio (lista según lo que tenga el cliente) y rango de fechas (Desde/Hasta; usa la fecha programada, o solicitada/creación, o de cierre si está terminado), además de los botones de estatus. Aplican a tarjetas, tabla, mapa y Excel.
